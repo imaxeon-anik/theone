@@ -98,7 +98,7 @@ Page {
                 text: "Use theOne keyboard"
                 description: page.active
                              ? "theOne is your keyboard. Turn off to go back to the Sailfish keyboard."
-                             : "The Sailfish keyboard is in use. Turn on for the iPhone-style theOne keyboard."
+                             : "The Sailfish keyboard is in use. Turn on to use theOne."
                 automaticCheck: false
                 checked: page.active
                 busy: page.switching
@@ -112,11 +112,11 @@ Page {
                 label: "Style"
                 currentIndex: Math.max(0, page.modes.indexOf(String(ambience.value)))
                 description: [
-                    "The iPhone look as it is.",
+                    "Dark rounded keys on a solid background.",
                     "Sailfish look: see-through glass keys over your ambience, in its own colours and font."
                 ][currentIndex]
                 menu: ContextMenu {
-                    MenuItem { text: "iPhone"; onClicked: ambience.value = "off" }
+                    MenuItem { text: "theOne Classic"; onClicked: ambience.value = "off" }
                     MenuItem { text: "Sailfish"; onClicked: ambience.value = "silica" }
                 }
             }
@@ -125,7 +125,7 @@ Page {
                 visible: String(ambience.value) === "silica"
                 text: "Sailfish font"
                 description: checked ? "Letters use Sailfish's own font."
-                                     : "Letters keep theOne's iPhone-like font (Inter)."
+                                     : "Letters keep theOne's own font (Inter)."
                 automaticCheck: false
                 checked: themeFont.value !== false
                 onClicked: themeFont.value = !checked
@@ -136,7 +136,7 @@ Page {
                 currentIndex: wideKeys.value === true ? 1 : 0
                 description: currentIndex === 1
                              ? "Keys look a little bigger, with narrower gaps. Each key still responds to the same area."
-                             : "Keys and gaps as on the iPhone."
+                             : "Keys and gaps as designed."
                 menu: ContextMenu {
                     MenuItem { text: "Standard"; onClicked: wideKeys.value = false }
                     MenuItem { text: "Wide"; onClicked: wideKeys.value = true }

@@ -90,7 +90,7 @@ Item {
             loader.item.syncContext(true)
             loader.item.updateAutoCaps()
             kb.storeLoader.item.ambience = "off"
-            check("iPhone style always uses Inter", kb.fontFamily !== "Sail Sans Test", kb.fontFamily)
+            check("theOne Classic always uses Inter", kb.fontFamily !== "Sail Sans Test", kb.fontFamily)
             tapChar("h"); tapChar("i")
             check("first letter capital, then lower case", text() === "Hi", text())
         },

@@ -2,7 +2,7 @@
 # Switch the on-screen keyboard between theOne and the stock Sailfish keyboard.
 # Run as the normal user (defaultuser), not as root:
 #     theone-keyboard on | off | status
-#     theone-keyboard style iphone | sailfish
+#     theone-keyboard style classic | sailfish
 #     theone-keyboard keys standard | wide
 #     theone-keyboard debug on | off     (log what the keyboard sees to the journal)
 set -u
@@ -52,15 +52,15 @@ status)
 style|ambience)
     KEY=/apps/theone-keyboard/ambience
     case "${2:-}" in
-    iphone|ios|off) dconf write "$KEY" "'off'" && echo "Style: iPhone" ;;
+    classic|iphone|ios|off) dconf write "$KEY" "'off'" && echo "Style: theOne Classic" ;;
     sailfish|silica) dconf write "$KEY" "'silica'" && echo "Style: Sailfish" ;;
     "")
         v=$(dconf read "$KEY" 2>/dev/null | tr -d "'")
-        [ "$v" = silica ] && echo sailfish || echo iphone
+        [ "$v" = silica ] && echo sailfish || echo classic
         ;;
     *)
-        echo "usage: theone-keyboard style iphone|sailfish" >&2
-        echo "  iphone    the iPhone look as it is (default)" >&2
+        echo "usage: theone-keyboard style classic|sailfish" >&2
+        echo "  classic   theOne Classic: dark rounded keys on a solid background (default)" >&2
         echo "  sailfish  see-through glass keys in the ambience's colours and font" >&2
         exit 2
         ;;
@@ -83,7 +83,7 @@ debug)
     esac
     ;;
 *)
-    echo "usage: theone-keyboard on|off|status|style [iphone|sailfish]|keys [standard|wide]|debug [on|off]" >&2
+    echo "usage: theone-keyboard on|off|status|style [classic|sailfish]|keys [standard|wide]|debug [on|off]" >&2
     exit 2
     ;;
 esac

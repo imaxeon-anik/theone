@@ -7,6 +7,12 @@ theOne is an independent project, not affiliated with or endorsed by Apple. iOS 
 are trademarks of Apple Inc. theOne uses no Apple artwork or fonts: the font is Inter and
 the emoji are Google's Noto Emoji.
 
+| theOne Classic | Sailfish style |
+| --- | --- |
+| ![theOne Classic: dark rounded keys with the suggestion bar](docs/classic.png) | ![Sailfish style: see-through keys over the ambience](docs/sailfish.png) |
+
+![Typing: the letter balloon, and the accent popup on a long press](docs/typing.png)
+
 - Solid rounded keys, magnified letter balloon while pressing
 - Shift: tap for one capital, double-tap for caps lock; automatic capitals at sentence start
 - Double space types ". "
@@ -19,10 +25,14 @@ the emoji are Google's Noto Emoji.
   `/apps/theone-keyboard/learned`)
 - No suggestions or autocorrect in password, URL, e-mail and number fields
 - Number (`123`), symbol (`#+=`) and emoji pages
-- Optional Sailfish style that follows your ambience (see below)
+- Optional Sailfish style that follows your ambience, and a Wide key size (see below)
+- Settings page: **Settings → System → theOne keyboard**
 - No haptics, no voice input, no swipe typing
 
-Tested on: the desktop preview and a fake-Maliit test harness. Not yet tested on a device.
+Tested on a Sony Xperia 10 V running Sailfish OS 5, plus the desktop preview and a
+fake-Maliit test harness.
+
+![Emoji page with colour emoji](docs/emoji.png)
 
 ## Build
 
@@ -36,13 +46,14 @@ The RPM is written to `RPMS/`.
 
 ## Install and turn on
 
-On the phone (developer mode on):
+Download the `.rpm` from the [releases page](https://github.com/imaxeon-anik/theone/releases),
+copy it to the phone (developer mode on) and install it:
 
 ```bash
-devel-su pkcon install-local theone-keyboard-0.3.0-1.aarch64.rpm
+devel-su zypper --non-interactive --no-gpg-checks in theone-keyboard-*.aarch64.rpm
 ```
 
-Then, as your normal user (not root):
+Then turn it on in **Settings → System → theOne keyboard**, or as your normal user (not root):
 
 ```bash
 theone-keyboard on
@@ -60,7 +71,7 @@ Two looks, picked in **Settings → System → theOne keyboard** or with the com
 The keys keep their size, place and behaviour in both; only colours, font and drawing change.
 
 ```bash
-theone-keyboard style iphone     # the iPhone look as it is (default)
+theone-keyboard style classic    # theOne Classic: dark rounded keys (default)
 theone-keyboard style sailfish   # see-through glass keys in the ambience's colours and font
 ```
 
