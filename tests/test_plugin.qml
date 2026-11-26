@@ -59,6 +59,21 @@ Item {
                   kb.ambienceMode === "off" && Qt.colorEqual(kb.ambienceColor, "#ff8c2e")
                     && Qt.colorEqual(kb.color, "#1f1f1f") && Qt.colorEqual(kb.accentColor, "#0a84ff"),
                   kb.ambienceMode + " " + kb.ambienceColor + " " + kb.color)
+            kb.previewAmbience = { mode: "silica", light: false, highlight: "#c680ff", dimmer: "#1c0b2e" }
+            check("Sailfish style: see-through panel, glass keys, solid balloon",
+                  kb.silica && kb.color.a < 1 && kb.color.a > 0.5 && kb.keyColor.a < 0.3
+                    && kb.popupColor.a === 1 && Qt.colorEqual(kb.textColor, "#ffffff"),
+                  kb.color + " " + kb.keyColor + " " + kb.popupColor)
+            kb.previewAmbience = null
+            // The Sailfish style uses Sailfish's font unless "Sailfish font" is off in Settings.
+            kb.storeLoader.item.ambience = "silica"
+            check("Sailfish style uses the Sailfish font", kb.fontFamily === "Sail Sans Test", kb.fontFamily)
+            kb.storeLoader.item.themeFont = false
+            check("Sailfish font switch off keeps Inter", kb.fontFamily !== "Sail Sans Test" && kb.fontFamily !== "",
+                  kb.fontFamily)
+            kb.storeLoader.item.themeFont = true
+            kb.storeLoader.item.ambience = "off"
+            check("iPhone style always uses Inter", kb.fontFamily !== "Sail Sans Test", kb.fontFamily)
             tapChar("h"); tapChar("i")
             check("first letter capital, then lower case", text() === "Hi", text())
         },

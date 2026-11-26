@@ -6,4 +6,8 @@ import Sailfish.Silica 1.0
 Item {
     readonly property color highlight: Theme.highlightColor
     readonly property bool light: Theme.colorScheme === Theme.DarkOnLight
+    // For the "silica" style.
+    readonly property color primary: Theme.primaryColor
+    readonly property color dimmer: Theme.highlightDimmerColor
+    readonly property string fontFamily: Theme.fontFamily
 }

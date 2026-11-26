@@ -2,7 +2,7 @@
 # Switch the on-screen keyboard between theOne and the stock Sailfish keyboard.
 # Run as the normal user (defaultuser), not as root:
 #     theone-keyboard on | off | status
-#     theone-keyboard ambience off | accent | full
+#     theone-keyboard style iphone | sailfish
 #     theone-keyboard debug on | off     (log what the keyboard sees to the journal)
 set -u
 # dconf needs the session bus, which an SSH login doesn't set up.
@@ -48,22 +48,19 @@ status)
         echo "off"
     fi
     ;;
-ambience)
+style|ambience)
     KEY=/apps/theone-keyboard/ambience
     case "${2:-}" in
-    off|accent|full)
-        dconf write "$KEY" "'$2'" || exit 1
-        echo "Ambience colours: $2"
-        ;;
+    iphone|ios|off) dconf write "$KEY" "'off'" && echo "Style: iPhone" ;;
+    sailfish|silica) dconf write "$KEY" "'silica'" && echo "Style: Sailfish" ;;
     "")
         v=$(dconf read "$KEY" 2>/dev/null | tr -d "'")
-        echo "${v:-off}"
+        [ "$v" = silica ] && echo sailfish || echo iphone
         ;;
     *)
-        echo "usage: theone-keyboard ambience off|accent|full" >&2
-        echo "  off     iOS colours as they are" >&2
-        echo "  accent  the ambience colour on the return key, accents and corrections" >&2
-        echo "  full    accent, plus light or dark like the ambience and tinted greys" >&2
+        echo "usage: theone-keyboard style iphone|sailfish" >&2
+        echo "  iphone    the iPhone look as it is (default)" >&2
+        echo "  sailfish  see-through glass keys in the ambience's colours and font" >&2
         exit 2
         ;;
     esac
@@ -76,7 +73,7 @@ debug)
     esac
     ;;
 *)
-    echo "usage: theone-keyboard on|off|status|ambience [off|accent|full]|debug [on|off]" >&2
+    echo "usage: theone-keyboard on|off|status|style [iphone|sailfish]|debug [on|off]" >&2
     exit 2
     ;;
 esac

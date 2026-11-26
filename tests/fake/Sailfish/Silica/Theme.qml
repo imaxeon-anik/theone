@@ -5,4 +5,7 @@ QtObject {
     enum ColorScheme { LightOnDark, DarkOnLight }
     property color highlightColor: "#ff8c2e"
     property int colorScheme: 0
+    property color primaryColor: "#ffffff"
+    property color highlightDimmerColor: "#301a05"
+    property string fontFamily: "Sail Sans Test"
 }

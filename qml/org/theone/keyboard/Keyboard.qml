@@ -15,41 +15,55 @@ Rectangle {
     height: Math.round(L.REF_H * sy)
 
     // --- look -----------------------------------------------------------------------
-    // Sailfish ambience. mode "off" is the iOS look as is; "accent" takes the ambience
-    // highlight colour for the blue bits; "full" also follows the ambience's light/dark
-    // scheme and tints the greys. Shapes, sizes and fonts never change.
-    property var previewAmbience: null   // { mode, light, highlight } for the desktop preview
+    // Style: "off" is the iOS look as is (dark); "silica" draws the same keys the Sailfish
+    // way, in the ambience's colours and font over a see-through, dimmed panel.
+    // Shapes and sizes never change.
+    property var previewAmbience: null   // { mode, light, highlight, dimmer, primary } for the desktop preview
     readonly property string ambienceMode: previewAmbience ? previewAmbience.mode
                                          : store.item ? String(store.item.ambience) : "off"
     readonly property color ambienceColor: previewAmbience ? previewAmbience.highlight
                                          : sailfish.item ? sailfish.item.highlight : "#0a84ff"
-    readonly property bool useAccent: ambienceMode === "accent" || ambienceMode === "full"
-    readonly property bool tinted: ambienceMode === "full"
-    readonly property bool light: tinted && (previewAmbience ? previewAmbience.light
-                                            : sailfish.item ? sailfish.item.light : false)
+    readonly property bool silica: ambienceMode === "silica"
+    property alias storeLoader: store   // settings (tests)
+    readonly property bool themeLight: previewAmbience ? previewAmbience.light
+                                     : sailfish.item ? sailfish.item.light : false
+    readonly property bool light: silica && themeLight
+    readonly property color themePrimary: previewAmbience ? (previewAmbience.primary || (themeLight ? "#000000" : "#ffffff"))
+                                        : sailfish.item ? sailfish.item.primary : "#ffffff"
+    readonly property color themeDimmer: previewAmbience ? (previewAmbience.dimmer || "#000000")
+                                       : sailfish.item ? sailfish.item.dimmer : "#000000"
 
     function mix(base, c, amount) {
         return Qt.tint(base, Qt.rgba(c.r, c.g, c.b, amount))
+    }
+    function alpha(c, a) {
+        return Qt.rgba(c.r, c.g, c.b, a)
     }
     function luma(c) {
         return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
     }
 
-    color: light ? (tinted ? mix("#d1d3d9", ambienceColor, 0.14) : "#d1d3d9")
-                 : (tinted ? mix("#1f1f1f", ambienceColor, 0.11) : "#1f1f1f")
-    readonly property color keyColor: light ? (tinted ? mix("#ffffff", ambienceColor, 0.06) : "#ffffff")
-                                    : tinted ? mix("#434343", ambienceColor, 0.09) : "#434343"
-    // Pressed function keys and suggestions flash in the ambience colour.
-    readonly property color keyPressedColor: useAccent ? mix(light ? "#adb2ba" : "#6b6b6b", ambienceColor, 0.5)
-                                           : light ? "#adb2ba" : "#6b6b6b"
-    readonly property color shadowColor: light ? "#8a8b8f" : "transparent"
-    readonly property color textColor: light ? "#000000" : "#ffffff"
-    readonly property color accentColor: useAccent ? ambienceColor : "#0a84ff"
+    color: silica ? alpha(themeDimmer, light ? 0.72 : 0.82) : "#1f1f1f"
+    // An opaque version of the background, for things drawn on top (emoji icon details).
+    readonly property color solidColor: silica ? mix(themeDimmer, themePrimary, 0.12) : color
+    readonly property color keyColor: silica ? alpha(themePrimary, light ? 0.16 : 0.14) : "#434343"
+    readonly property color keyPressedColor: silica ? alpha(ambienceColor, 0.45) : "#6b6b6b"
+    readonly property color textColor: silica ? themePrimary : "#ffffff"
+    readonly property color accentColor: silica ? ambienceColor : "#0a84ff"
     readonly property color accentTextColor: luma(accentColor) > 0.62 ? "#000000" : "#ffffff"
-    readonly property color barHighlightColor: useAccent ? accentColor : keyColor
-    readonly property color separatorColor: light ? "#b3b6bc" : "#4f4f4f"
-    readonly property color popupBorderColor: light ? "#a9adb4" : "#2a2a2a"
-    readonly property string fontFamily: inter.status === FontLoader.Ready ? inter.name : ""
+    readonly property color barHighlightColor: silica ? alpha(ambienceColor, 0.4) : keyColor
+    readonly property color barHighlightTextColor: silica ? (light ? themePrimary : ambienceColor) : textColor
+    readonly property color separatorColor: silica ? alpha(themePrimary, 0.25) : "#4f4f4f"
+    readonly property color popupBorderColor: silica ? alpha(ambienceColor, 0.8) : "#2a2a2a"
+    // The letter balloon has to be solid to cover the keys under it.
+    readonly property color popupColor: silica ? mix(themeDimmer, ambienceColor, light ? 0.25 : 0.35) : keyColor
+    readonly property string themeFont: previewAmbience ? (previewAmbience.font || "")
+                                      : sailfish.item ? sailfish.item.fontFamily : ""
+    // Settings -> "Sailfish font": off keeps Inter in the Sailfish style too.
+    readonly property bool useThemeFont: previewAmbience ? previewAmbience.font !== undefined
+                                       : store.item ? store.item.themeFont !== false : true
+    readonly property string fontFamily: silica && useThemeFont && themeFont !== "" ? themeFont
+                                       : inter.status === FontLoader.Ready ? inter.name : ""
     FontLoader { id: inter; source: "fonts/Inter-Regular.ttf" }
 
     // --- state ----------------------------------------------------------------------
@@ -356,23 +370,12 @@ Rectangle {
             width: k.w * kb.sx
             height: k.h * kb.sy
             radius: 10 * kb.unit
-            // iOS colours the return key only for Go/Send; with ambience colours it always is.
-            readonly property bool lit: k.type === "return" && (kb.actionHighlighted || kb.useAccent)
+            // iOS colours the return key only for Go/Send; the Sailfish style always does.
+            readonly property bool lit: k.type === "return" && (kb.actionHighlighted || kb.silica)
             color: k.bare ? "transparent"
                  : lit ? kb.accentColor
                  : (down && k.type !== "char") ? kb.keyPressedColor
                  : kb.keyColor
-
-            // iOS light keys sit on a thin shadow line.
-            Rectangle {
-                z: -1
-                visible: !k.bare && kb.light
-                anchors.fill: parent
-                anchors.topMargin: 1.5 * kb.unit
-                anchors.bottomMargin: -1.5 * kb.unit
-                radius: parent.radius
-                color: kb.shadowColor
-            }
 
             Text {
                 anchors.centerIn: parent
@@ -397,7 +400,7 @@ Rectangle {
                 visible: name !== "" && !kb.trackpad
                 scaleFactor: kb.unit
                 color: parent.lit ? kb.accentTextColor : kb.textColor
-                cutout: kb.color
+                cutout: kb.solidColor
                 name: k.type === "shift" ? (kb.shiftState === 2 ? "capsLock" : kb.shiftState === 1 ? "shiftOn" : "shift")
                     : k.type === "backspace" ? "backspace"
                     : (k.type === "return" && kb.actionLabel === "") ? "return"
@@ -410,7 +413,7 @@ Rectangle {
                 y: (L.STRIP_ICON.cy - k.y) * kb.sy - height / 2
                 scaleFactor: kb.unit
                 color: kb.textColor
-                cutout: kb.color
+                cutout: kb.solidColor
                 name: "emoji"
             }
         }
@@ -683,7 +686,7 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideMiddle
                     text: parent.item ? (parent.item.quoted ? "\u201C" + parent.item.text + "\u201D" : parent.item.text) : ""
-                    color: parent.lit && kb.barPressed !== index && kb.useAccent ? kb.accentTextColor : kb.textColor
+                    color: parent.lit && kb.barPressed !== index && kb.silica ? kb.barHighlightTextColor : kb.textColor
                     font.family: kb.fontFamily
                     font.pixelSize: 24 * kb.unit
                 }
@@ -735,9 +738,9 @@ Rectangle {
         kw: kb.popupKey ? kb.popupKey.w * kb.sx : 0
         kh: kb.popupKey ? kb.popupKey.h * kb.sy : 0
         text: kb.popupKey ? kb.labelFor(kb.popupKey) : ""
-        color: kb.keyColor
+        color: kb.popupColor
         textColor: kb.textColor
-        edgeColor: kb.light ? kb.popupBorderColor : "transparent"
+        edgeColor: kb.silica ? kb.popupBorderColor : "transparent"
         fontFamily: kb.fontFamily
         unit: kb.unit
     }
@@ -750,7 +753,7 @@ Rectangle {
         width: count * cellW + 2 * 6 * kb.unit
         height: L.KEY_H * kb.sy * 1.05
         radius: 10 * kb.unit
-        color: kb.keyColor
+        color: kb.popupColor
         border.color: kb.popupBorderColor
         border.width: 1
         x: kb.accentKey ? Math.max(4 * kb.unit, Math.min(kb.width - width - 4 * kb.unit,

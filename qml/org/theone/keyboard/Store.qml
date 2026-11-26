@@ -6,6 +6,12 @@ import Nemo.Configuration 1.0
 Item {
     property alias value: cfg.value
     property alias ambience: amb.value   // "off", "accent" or "full"
+    property alias themeFont: tf.value   // Sailfish style: Sailfish's font (true) or Inter
+    ConfigurationValue {
+        id: tf
+        key: "/apps/theone-keyboard/sailfish-font"
+        defaultValue: true
+    }
     property alias debug: dbg.value      // log what the keyboard sees (theone-keyboard debug on)
     ConfigurationValue {
         id: dbg

@@ -1,5 +1,5 @@
 Name: theone-keyboard
-Version: 0.4.6
+Version: 0.5.2
 Release: 1
 Summary: theOne, an iOS-style on-screen keyboard for Sailfish OS
 License: MIT and OFL-1.1 and CC-BY-SA-4.0
@@ -16,9 +16,9 @@ theOne is a Maliit keyboard plugin for Sailfish OS with a dark, iOS-style look:
 solid rounded keys, a magnified letter balloon while typing, iOS-style shift and
 caps lock, double-space for a full stop, long-press accents, space-bar cursor
 moving, English word suggestions and autocorrect that learn your words, and number,
-symbol and emoji pages. Can follow the Sailfish ambience colours
-(`theone-keyboard ambience off|accent|full`). No haptics, no voice input, no swipe.
-Turn it on or off and pick the ambience colours in Settings -> theOne keyboard,
+symbol and emoji pages. Optional Sailfish style: see-through glass keys in
+your ambience's colours and font. No haptics, no voice input, no swipe.
+Turn it on or off and pick the style in Settings -> theOne keyboard,
 or with `theone-keyboard on|off` (as your normal user). Includes the Inter font (SIL Open Font License 1.1) and an English word list
 from FrequencyWords (CC BY-SA 4.0).
 

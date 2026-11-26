@@ -9,7 +9,7 @@ Page {
 
     property bool active: false
     property bool switching: false
-    readonly property var modes: ["off", "accent", "full"]
+    readonly property var modes: ["off", "silica"]
     readonly property int learnedCount: {
         try {
             return Object.keys(JSON.parse(String(learned.value)).w || {}).length
@@ -61,6 +61,12 @@ Page {
     }
 
     ConfigurationValue {
+        id: themeFont
+        key: "/apps/theone-keyboard/sailfish-font"
+        defaultValue: true
+    }
+
+    ConfigurationValue {
         id: learned
         key: "/apps/theone-keyboard/learned"
         defaultValue: ""
@@ -97,18 +103,26 @@ Page {
 
             ComboBox {
                 id: modeBox
-                label: "Ambience colours"
+                label: "Style"
                 currentIndex: Math.max(0, page.modes.indexOf(String(ambience.value)))
                 description: [
                     "The iPhone look as it is.",
-                    "Your ambience colour on the return key, accents and corrections.",
-                    "Ambience colour, plus a light keyboard on light ambiences and a faint tint."
+                    "Sailfish look: see-through glass keys over your ambience, in its own colours and font."
                 ][currentIndex]
                 menu: ContextMenu {
-                    MenuItem { text: "Off"; onClicked: ambience.value = "off" }
-                    MenuItem { text: "Accent"; onClicked: ambience.value = "accent" }
-                    MenuItem { text: "Full"; onClicked: ambience.value = "full" }
+                    MenuItem { text: "iPhone"; onClicked: ambience.value = "off" }
+                    MenuItem { text: "Sailfish"; onClicked: ambience.value = "silica" }
                 }
+            }
+
+            TextSwitch {
+                visible: String(ambience.value) === "silica"
+                text: "Sailfish font"
+                description: checked ? "Letters use Sailfish's own font."
+                                     : "Letters keep theOne's iPhone-like font (Inter)."
+                automaticCheck: false
+                checked: themeFont.value !== false
+                onClicked: themeFont.value = !checked
             }
 
             SectionHeader { text: "Suggestions" }

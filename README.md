@@ -19,7 +19,7 @@ the emoji are Google's Noto Emoji.
   `/apps/theone-keyboard/learned`)
 - No suggestions or autocorrect in password, URL, e-mail and number fields
 - Number (`123`), symbol (`#+=`) and emoji pages
-- Optional Sailfish ambience colours (see below)
+- Optional Sailfish style that follows your ambience (see below)
 - No haptics, no voice input, no swipe typing
 
 Tested on: the desktop preview and a fake-Maliit test harness. Not yet tested on a device.
@@ -54,15 +54,14 @@ Back to the stock keyboard:
 theone-keyboard off
 ```
 
-## Ambience colours
+## Style
 
-The keyboard keeps its iOS shape either way; only colours change. Switch at any time
-(no restart needed):
+Two looks, picked in **Settings → System → theOne keyboard** or with the command below.
+The keys keep their size, place and behaviour in both; only colours, font and drawing change.
 
 ```bash
-theone-keyboard ambience off      # iOS colours as they are (default)
-theone-keyboard ambience accent   # ambience colour on Go/Send, accents and corrections
-theone-keyboard ambience full     # accent, plus light/dark like the ambience, tinted greys
+theone-keyboard style iphone     # the iPhone look as it is (default)
+theone-keyboard style sailfish   # see-through glass keys in the ambience's colours and font
 ```
 
 If the keyboard ever fails to appear, run `theone-keyboard off` over SSH or from a
