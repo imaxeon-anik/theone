@@ -21,7 +21,19 @@ Item {
         { name: "emoji", page: "emoji", shift: 0, popup: -1, accent: -1 },
         { name: "suggest-teh", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh" },
         { name: "suggest-hel", page: "letters", shift: 0, popup: -1, accent: -1, word: "hel" },
-        { name: "predict-start", page: "letters", shift: 1, popup: -1, accent: -1, word: "" }
+        { name: "predict-start", page: "letters", shift: 1, popup: -1, accent: -1, word: "" },
+        { name: "amb-accent", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh", go: true,
+          amb: { mode: "accent", light: false, highlight: "#ff8c2e" } },
+        { name: "amb-full-dark", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh", go: true,
+          amb: { mode: "full", light: false, highlight: "#ff8c2e" } },
+        { name: "amb-full-light", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh", go: true,
+          amb: { mode: "full", light: true, highlight: "#1f6fd6" } },
+        { name: "amb-full-light-popup", page: "letters", shift: 0, popup: 14, accent: -1, word: "",
+          amb: { mode: "full", light: true, highlight: "#1f6fd6" } },
+        { name: "amb-full-dark-numbers", page: "numbers", shift: 0, popup: -1, accent: -1, word: "",
+          amb: { mode: "full", light: false, highlight: "#3fd17a" } },
+        { name: "amb-full-light-accents", page: "letters", shift: 0, popup: -1, accent: 2, word: "",
+          amb: { mode: "full", light: true, highlight: "#d63f8a" } }
     ]
     property int current: 0
 
@@ -36,6 +48,9 @@ Item {
         kb.popupKey = s.popup >= 0 ? kb.keys[s.popup] : null
         kb.accentKey = s.accent >= 0 ? kb.keys[s.accent] : null
         kb.accentIndex = 1
+        kb.previewAmbience = s.amb || null
+        kb.actionLabel = s.go ? "Go" : ""
+        kb.actionHighlighted = !!s.go
         kb.word = s.word || ""
         kb.updateBar()
     }

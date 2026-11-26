@@ -55,6 +55,10 @@ Item {
                     && Math.round(a.y + a.height) === 2520 && Math.round(a.height) === Math.round(495 * 1080 / 618),
                   JSON.stringify(a))
             check("auto-capital at start of empty field", kb.shiftState === 1, kb.shiftState)
+            check("ambience is read but off by default",
+                  kb.ambienceMode === "off" && Qt.colorEqual(kb.ambienceColor, "#ff8c2e")
+                    && Qt.colorEqual(kb.color, "#1f1f1f") && Qt.colorEqual(kb.accentColor, "#0a84ff"),
+                  kb.ambienceMode + " " + kb.ambienceColor + " " + kb.color)
             tapChar("h"); tapChar("i")
             check("first letter capital, then lower case", text() === "Hi", text())
         },

@@ -5,6 +5,12 @@ import Nemo.Configuration 1.0
 // a Loader so the keyboard still runs where Nemo.Configuration is missing.
 Item {
     property alias value: cfg.value
+    property alias ambience: amb.value   // "off", "accent" or "full"
+    ConfigurationValue {
+        id: amb
+        key: "/apps/theone-keyboard/ambience"
+        defaultValue: "off"
+    }
     ConfigurationValue {
         id: cfg
         key: "/apps/theone-keyboard/learned"

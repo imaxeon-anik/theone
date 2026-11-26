@@ -2,6 +2,7 @@
 # Switch the on-screen keyboard between theOne and the stock Sailfish keyboard.
 # Run as the normal user (defaultuser), not as root:
 #     theone-keyboard on | off | status
+#     theone-keyboard ambience off | accent | full
 set -u
 CONF="$HOME/.config/maliit.org/server.conf"
 BACKUP="$CONF.before-theone"
@@ -44,8 +45,28 @@ status)
         echo "off"
     fi
     ;;
+ambience)
+    KEY=/apps/theone-keyboard/ambience
+    case "${2:-}" in
+    off|accent|full)
+        dconf write "$KEY" "'$2'" || exit 1
+        echo "Ambience colours: $2"
+        ;;
+    "")
+        v=$(dconf read "$KEY" 2>/dev/null | tr -d "'")
+        echo "${v:-off}"
+        ;;
+    *)
+        echo "usage: theone-keyboard ambience off|accent|full" >&2
+        echo "  off     iOS colours as they are" >&2
+        echo "  accent  the ambience colour on the return key, accents and corrections" >&2
+        echo "  full    accent, plus light or dark like the ambience and tinted greys" >&2
+        exit 2
+        ;;
+    esac
+    ;;
 *)
-    echo "usage: theone-keyboard on|off|status" >&2
+    echo "usage: theone-keyboard on|off|status|ambience [off|accent|full]" >&2
     exit 2
     ;;
 esac

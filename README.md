@@ -15,6 +15,7 @@ Dark look matched to an iPhone keyboard screenshot (`preview/reference.png`).
   `/apps/theone-keyboard/learned`)
 - No suggestions or autocorrect in password, URL, e-mail and number fields
 - Number (`123`), symbol (`#+=`) and emoji pages
+- Optional Sailfish ambience colours (see below)
 - No haptics, no voice input, no swipe typing
 
 Tested on: the desktop preview and a fake-Maliit test harness. Not yet tested on a device.
@@ -34,7 +35,7 @@ The RPM is written to `RPMS/`.
 On the phone (developer mode on):
 
 ```bash
-devel-su pkcon install-local theone-keyboard-0.2.0-1.aarch64.rpm
+devel-su pkcon install-local theone-keyboard-0.3.0-1.aarch64.rpm
 ```
 
 Then, as your normal user (not root):
@@ -47,6 +48,17 @@ Back to the stock keyboard:
 
 ```bash
 theone-keyboard off
+```
+
+## Ambience colours
+
+The keyboard keeps its iOS shape either way; only colours change. Switch at any time
+(no restart needed):
+
+```bash
+theone-keyboard ambience off      # iOS colours as they are (default)
+theone-keyboard ambience accent   # ambience colour on Go/Send, accents and corrections
+theone-keyboard ambience full     # accent, plus light/dark like the ambience, tinted greys
 ```
 
 If the keyboard ever fails to appear, run `theone-keyboard off` over SSH or from a

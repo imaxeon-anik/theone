@@ -12,6 +12,7 @@ Item {
     property string text: ""
     property color color: "#434343"
     property color textColor: "#ffffff"
+    property color edgeColor: "transparent"   // outline, for white balloons on white keys
     property string fontFamily: ""
     property real unit: 1          // reference unit in pixels
 
@@ -27,6 +28,8 @@ Item {
     onKyChanged: canvas.requestPaint()
     onKwChanged: canvas.requestPaint()
     onVisibleChanged: if (visible) canvas.requestPaint()
+    onColorChanged: canvas.requestPaint()
+    onEdgeColorChanged: canvas.requestPaint()
 
     Canvas {
         id: canvas
@@ -57,6 +60,11 @@ Item {
             ctx.arcTo(rr, B, rr - r, B, r)
             ctx.closePath()
             ctx.fill()
+            if (popup.edgeColor.a > 0) {
+                ctx.strokeStyle = popup.edgeColor
+                ctx.lineWidth = Math.max(1, 1.2 * popup.unit)
+                ctx.stroke()
+            }
         }
     }
 

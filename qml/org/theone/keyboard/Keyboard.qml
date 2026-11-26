@@ -15,11 +15,38 @@ Rectangle {
     height: Math.round(L.REF_H * sy)
 
     // --- look -----------------------------------------------------------------------
-    color: "#1f1f1f"
-    readonly property color keyColor: "#434343"
-    readonly property color keyPressedColor: "#6b6b6b"
-    readonly property color textColor: "#ffffff"
-    readonly property color accentColor: "#0a84ff"
+    // Sailfish ambience. mode "off" is the iOS look as is; "accent" takes the ambience
+    // highlight colour for the blue bits; "full" also follows the ambience's light/dark
+    // scheme and tints the greys. Shapes, sizes and fonts never change.
+    property var previewAmbience: null   // { mode, light, highlight } for the desktop preview
+    readonly property string ambienceMode: previewAmbience ? previewAmbience.mode
+                                         : store.item ? String(store.item.ambience) : "off"
+    readonly property color ambienceColor: previewAmbience ? previewAmbience.highlight
+                                         : sailfish.item ? sailfish.item.highlight : "#0a84ff"
+    readonly property bool useAccent: ambienceMode === "accent" || ambienceMode === "full"
+    readonly property bool tinted: ambienceMode === "full"
+    readonly property bool light: tinted && (previewAmbience ? previewAmbience.light
+                                            : sailfish.item ? sailfish.item.light : false)
+
+    function mix(base, c, amount) {
+        return Qt.tint(base, Qt.rgba(c.r, c.g, c.b, amount))
+    }
+    function luma(c) {
+        return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+    }
+
+    color: light ? (tinted ? mix("#d1d3d9", ambienceColor, 0.07) : "#d1d3d9")
+                 : (tinted ? mix("#1f1f1f", ambienceColor, 0.045) : "#1f1f1f")
+    readonly property color keyColor: light ? "#ffffff"
+                                    : tinted ? mix("#434343", ambienceColor, 0.04) : "#434343"
+    readonly property color keyPressedColor: light ? "#adb2ba" : "#6b6b6b"
+    readonly property color shadowColor: light ? "#8a8b8f" : "transparent"
+    readonly property color textColor: light ? "#000000" : "#ffffff"
+    readonly property color accentColor: useAccent ? ambienceColor : "#0a84ff"
+    readonly property color accentTextColor: luma(accentColor) > 0.62 ? "#000000" : "#ffffff"
+    readonly property color barHighlightColor: useAccent ? mix(keyColor, accentColor, light ? 0.3 : 0.38) : keyColor
+    readonly property color separatorColor: light ? "#b3b6bc" : "#4f4f4f"
+    readonly property color popupBorderColor: light ? "#a9adb4" : "#2a2a2a"
     readonly property string fontFamily: inter.status === FontLoader.Ready ? inter.name : ""
     FontLoader { id: inter; source: "fonts/Inter-Regular.ttf" }
 
@@ -312,10 +339,22 @@ Rectangle {
             width: k.w * kb.sx
             height: k.h * kb.sy
             radius: 10 * kb.unit
+            readonly property bool lit: k.type === "return" && kb.actionHighlighted
             color: k.bare ? "transparent"
-                 : (k.type === "return" && kb.actionHighlighted) ? kb.accentColor
+                 : lit ? kb.accentColor
                  : (down && k.type !== "char") ? kb.keyPressedColor
                  : kb.keyColor
+
+            // iOS light keys sit on a thin shadow line.
+            Rectangle {
+                z: -1
+                visible: !k.bare && kb.light
+                anchors.fill: parent
+                anchors.topMargin: 1.5 * kb.unit
+                anchors.bottomMargin: -1.5 * kb.unit
+                radius: parent.radius
+                color: kb.shadowColor
+            }
 
             Text {
                 anchors.centerIn: parent
@@ -328,7 +367,7 @@ Rectangle {
                     : k.type === "mode" ? k.label
                     : (k.type === "return" && kb.actionLabel !== "") ? kb.actionLabel
                     : ""
-                color: kb.textColor
+                color: parent.lit ? kb.accentTextColor : kb.textColor
                 opacity: (k.type === "return" && !kb.actionEnabled) ? 0.4 : 1
                 font.family: kb.fontFamily
                 font.pixelSize: (k.type === "char" ? 30 : 26) * kb.unit
@@ -339,7 +378,7 @@ Rectangle {
                 anchors.verticalCenterOffset: (k.type === "return" ? -0.6 : 0.8) * kb.unit
                 visible: name !== "" && !kb.trackpad
                 scaleFactor: kb.unit
-                color: kb.textColor
+                color: parent.lit ? kb.accentTextColor : kb.textColor
                 cutout: kb.color
                 name: k.type === "shift" ? (kb.shiftState === 2 ? "capsLock" : kb.shiftState === 1 ? "shiftOn" : "shift")
                     : k.type === "backspace" ? "backspace"
@@ -550,6 +589,12 @@ Rectangle {
 
     // Learned words are kept in dconf (Nemo.Configuration). Without it (desktop
     // preview), learning still works but is forgotten on restart.
+    // Ambience colours from Silica's Theme (missing on the desktop preview).
+    Loader {
+        id: sailfish
+        source: "Ambience.qml"
+    }
+
     Loader {
         id: store
         source: "Store.qml"
@@ -596,7 +641,7 @@ Rectangle {
                     height: 48 * kb.sy
                     radius: 9 * kb.unit
                     visible: parent.lit
-                    color: kb.barPressed === index ? kb.keyPressedColor : kb.keyColor
+                    color: kb.barPressed === index ? kb.keyPressedColor : kb.barHighlightColor
                 }
                 Text {
                     anchors.centerIn: parent
@@ -621,7 +666,7 @@ Rectangle {
                 y: 19 * kb.sy
                 width: Math.max(1, 1.5 * kb.unit)
                 height: 30 * kb.sy
-                color: "#4f4f4f"
+                color: kb.separatorColor
                 visible: leftItem !== null && rightItem !== null && !leftItem.auto && !rightItem.auto
                          && kb.barPressed !== index && kb.barPressed !== index + 1
             }
@@ -659,6 +704,7 @@ Rectangle {
         text: kb.popupKey ? kb.labelFor(kb.popupKey) : ""
         color: kb.keyColor
         textColor: kb.textColor
+        edgeColor: kb.light ? kb.popupBorderColor : "transparent"
         fontFamily: kb.fontFamily
         unit: kb.unit
     }
@@ -672,7 +718,7 @@ Rectangle {
         height: L.KEY_H * kb.sy * 1.05
         radius: 10 * kb.unit
         color: kb.keyColor
-        border.color: "#2a2a2a"
+        border.color: kb.popupBorderColor
         border.width: 1
         x: kb.accentKey ? Math.max(4 * kb.unit, Math.min(kb.width - width - 4 * kb.unit,
                                                          kb.accentKey.x * kb.sx - 6 * kb.unit)) : 0
@@ -691,7 +737,7 @@ Rectangle {
                     Text {
                         anchors.centerIn: parent
                         text: kb.shiftState > 0 ? modelData.toUpperCase() : modelData
-                        color: kb.textColor
+                        color: index === kb.accentIndex ? kb.accentTextColor : kb.textColor
                         font.family: kb.fontFamily
                         font.pixelSize: 32 * kb.unit
                     }
