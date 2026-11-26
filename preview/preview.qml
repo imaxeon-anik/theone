@@ -18,7 +18,10 @@ Item {
         { name: "accents-e", page: "letters", shift: 0, popup: -1, accent: 2 },
         { name: "numbers", page: "numbers", shift: 0, popup: -1, accent: -1 },
         { name: "symbols", page: "symbols", shift: 0, popup: -1, accent: -1 },
-        { name: "emoji", page: "emoji", shift: 0, popup: -1, accent: -1 }
+        { name: "emoji", page: "emoji", shift: 0, popup: -1, accent: -1 },
+        { name: "suggest-teh", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh" },
+        { name: "suggest-hel", page: "letters", shift: 0, popup: -1, accent: -1, word: "hel" },
+        { name: "predict-start", page: "letters", shift: 1, popup: -1, accent: -1, word: "" }
     ]
     property int current: 0
 
@@ -33,6 +36,8 @@ Item {
         kb.popupKey = s.popup >= 0 ? kb.keys[s.popup] : null
         kb.accentKey = s.accent >= 0 ? kb.keys[s.accent] : null
         kb.accentIndex = 1
+        kb.word = s.word || ""
+        kb.updateBar()
     }
 
     Timer {

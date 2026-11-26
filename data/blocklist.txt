@@ -1,0 +1,35 @@
+# Words theOne knows (so it never "corrects" them) but never suggests or
+# autocorrects to. One per line.
+fuck
+fucking
+fucked
+fucker
+fuckin
+motherfucker
+shit
+shitty
+bullshit
+bitch
+bitches
+cunt
+cock
+dick
+dicks
+pussy
+whore
+slut
+bastard
+asshole
+twat
+wanker
+nigger
+niggers
+nigga
+faggot
+fag
+retard
+retarded
+dyke
+kike
+spic
+chink

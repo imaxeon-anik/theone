@@ -1,5 +1,6 @@
 import QtQuick 2.6
 import "Layouts.js" as L
+import "Predict.js" as P
 
 // theOne keyboard surface. Knows nothing about Maliit: it emits signals and the
 // plugin entry file (theone.qml) forwards them to the input method server.
@@ -42,6 +43,27 @@ Rectangle {
     signal backspace()
     signal actionKey()
     signal cursorStep(int direction)
+    signal contextWanted()          // asks the plugin to call syncContext() with fresh text
+
+    // --- suggestions ----------------------------------------------------------------
+    property bool predictions: true
+    property string word: ""          // letters of the word being typed
+    property string prevWord: ""      // the word before it, for next-word predictions
+    property bool brokenWord: false   // cursor sits in a token we don't predict (abc1|, mid-word)
+    property bool sentenceStart: true
+    property string rejected: ""      // a word the user undid the correction of
+    property var lastCorrection: null // { original, corrected, sep, prev } until the next key
+    property double lastEditTime: 0
+    property var bar: []              // [{ text, quoted, auto }]
+    property int barPressed: -1
+    readonly property bool barVisible: predictions && page !== "emoji"
+    readonly property real barHeight: L.BAND[0][0] * sy
+
+    onWordChanged: barTimer.restart()
+    onPrevWordChanged: barTimer.restart()
+    onBrokenWordChanged: barTimer.restart()
+    onPredictionsChanged: barTimer.restart()
+    onSentenceStartChanged: barTimer.restart()
 
     // Local memory of what was just typed, for double-space and auto-capitals when the
     // editor does not report its text.
@@ -55,13 +77,136 @@ Rectangle {
         autoShifted = false
         recent = ""
         trackpad = false
+        resetWord()
+        prevWord = ""
         endAllTouches()
+    }
+
+    function resetWord() {
+        word = ""
+        brokenWord = false
+        rejected = ""
+        lastCorrection = null
+    }
+
+    function isLetter(c) {
+        return c.length === 1 && c.toLowerCase() !== c.toUpperCase()
+    }
+
+    // The plugin reports the text around the cursor. Our own typing is tracked locally,
+    // because the editor's echo can lag behind fast typing; we only adopt the editor's
+    // view when we have not typed for a moment (or when asked to, force).
+    function syncContext(before, after, force) {
+        if (!force && Date.now() - lastEditTime < 400) {
+            syncTimer.restart()
+            return
+        }
+        var run = /\S*$/.exec(before)[0]
+        var tok = /[A-Za-z\u00C0-\u024F']*$/.exec(run)[0].replace(/^'+/, "")
+        var glued = tok.length < run.length
+                && /[0-9A-Za-z\u00C0-\u024F@#_&$%*+=<>\\\/]/.test(run.charAt(run.length - tok.length - 1))
+        var broken = glued || /^[0-9A-Za-z\u00C0-\u024F]/.test(after || "")
+        recent = before.slice(-4)
+        var newWord = broken ? "" : tok
+        if (newWord === word && broken === brokenWord)
+            return
+        word = newWord
+        brokenWord = broken
+        rejected = ""
+        lastCorrection = null
+        var pm = /([A-Za-z\u00C0-\u024F']+)[\s,;:]*$/.exec(before.slice(0, before.length - run.length))
+        prevWord = pm ? pm[1] : ""
+    }
+
+    function updateBar() {
+        if (!predictions) {
+            bar = []
+            return
+        }
+        P.init()
+        var items = []
+        if (brokenWord) {
+            items = []
+        } else if (word !== "") {
+            var s = P.suggest(word)
+            var auto = word === rejected ? "" : s.auto
+            items.push({ text: word, quoted: true, auto: false })
+            for (var i = 0; i < s.items.length && items.length < 3; ++i)
+                items.push({ text: s.items[i], quoted: false, auto: auto !== "" && s.items[i] === auto })
+        } else {
+            var n = P.next(prevWord, sentenceStart)
+            for (var j = 0; j < n.length; ++j)
+                items.push({ text: n[j], quoted: false, auto: false })
+        }
+        bar = items
+    }
+
+    // Finish the current word with sep (" ", ".", "" for return), applying autocorrect.
+    function endWord(sep) {
+        lastEditTime = Date.now()
+        syncTimer.restart()
+        var typed = brokenWord ? "" : word
+        var result = typed
+        var auto = (predictions && typed !== "" && typed !== rejected) ? P.suggest(typed).auto : ""
+        if (auto !== "" && auto !== typed) {
+            commit(auto + sep, -typed.length, typed.length)
+            lastCorrection = { original: typed, corrected: auto, sep: sep, prev: prevWord }
+            result = auto
+        } else {
+            if (sep !== "")
+                commit(sep, 0, 0)
+            lastCorrection = null
+        }
+        if (predictions && typed !== "") {
+            P.learn(result, prevWord, typed === rejected)
+            saveTimer.restart()
+        }
+        recent = (recent.slice(0, Math.max(0, recent.length - typed.length)) + result + sep).slice(-4)
+        if (typed !== "")
+            prevWord = result
+        if (/[.!?]/.test(sep))
+            prevWord = ""
+        word = ""
+        rejected = ""
+        brokenWord = false
+    }
+
+    function pickSuggestion(i) {
+        var it = bar[i]
+        if (!it)
+            return
+        lastEditTime = Date.now()
+        syncTimer.restart()
+        var typed = brokenWord ? "" : word
+        var lead = (typed === "" && recent !== "" && !/\s$/.test(recent)) ? " " : ""
+        commit(lead + it.text + " ", -typed.length, typed.length)
+        if (predictions) {
+            P.learn(it.text, prevWord, it.quoted)
+            saveTimer.restart()
+        }
+        prevWord = it.text
+        word = ""
+        rejected = ""
+        brokenWord = false
+        lastCorrection = null
+        recent = (it.text + " ").slice(-4)
+        lastSpaceTime = 0
+        if (shiftState === 1) {
+            shiftState = 0
+            autoShifted = false
+        }
+    }
+
+    function flush() {
+        if (store.item && P.dirty)
+            store.item.value = P.dump()
     }
 
     // Called by the plugin when the editor's text/cursor changes.
     function applyAutoCaps(atSentenceStart) {
         if (shiftState === 2)
             return
+        sentenceStart = atSentenceStart
         if (atSentenceStart && shiftState === 0) {
             shiftState = 1
             autoShifted = true
@@ -78,7 +223,26 @@ Rectangle {
     }
 
     function typeText(t) {
-        commit(t, 0, 0)
+        lastEditTime = Date.now()
+        syncTimer.restart()
+        lastCorrection = null
+        if (isLetter(t) || (t === "'" && word !== "")) {
+            if (word === "" && /[0-9A-Za-z\u00C0-\u024F]$/.test(recent))
+                brokenWord = true
+            commit(t, 0, 0)
+            if (!brokenWord)
+                word += t
+        } else if (/^[.,!?;:)"]$/.test(t) && word !== "") {
+            endWord(t)
+            recent = recent.slice(0, -1)    // endWord already added t
+        } else {
+            commit(t, 0, 0)
+            word = ""
+            rejected = ""
+            brokenWord = /[0-9@#_&$%*+=<>\\\/]/.test(t)
+            if (/[.!?]/.test(t))
+                prevWord = ""
+        }
         recent = (recent + t).slice(-4)
         if (shiftState === 1) {
             shiftState = 0
@@ -88,13 +252,16 @@ Rectangle {
 
     function typeSpace() {
         var now = Date.now()
-        if (/[^\s.!?]\s$/.test(recent) && now - lastSpaceTime < 700) {
+        if (word === "" && /[^\s.!?]\s$/.test(recent) && now - lastSpaceTime < 700) {
+            lastEditTime = now
+            syncTimer.restart()
             commit(". ", -1, 1)          // replace the space just typed
             recent = (recent.slice(0, -1) + ". ").slice(-4)
             lastSpaceTime = 0
+            lastCorrection = null
+            prevWord = ""
         } else {
-            commit(" ", 0, 0)
-            recent = (recent + " ").slice(-4)
+            endWord(" ")
             lastSpaceTime = now
         }
         if (page !== "letters" && page !== "emoji")
@@ -112,8 +279,26 @@ Rectangle {
     }
 
     function doBackspace() {
+        lastEditTime = Date.now()
+        syncTimer.restart()
+        var c = lastCorrection
+        if (c) {
+            // Undo the autocorrection that was just made, and keep the typed word.
+            var len = c.corrected.length + c.sep.length
+            commit(c.original, -len, len)
+            lastCorrection = null
+            word = c.original
+            rejected = c.original
+            prevWord = c.prev
+            brokenWord = false
+            recent = (recent.slice(0, Math.max(0, recent.length - len)) + c.original).slice(-4)
+            return
+        }
         backspace()
         recent = recent.slice(0, -1)
+        if (word !== "")
+            word = word.slice(0, -1)
+        rejected = ""
     }
 
     // --- key drawing ----------------------------------------------------------------
@@ -205,6 +390,11 @@ Rectangle {
                 t.done = true
             }
         }
+        if (barVisible && py < barHeight) {
+            touches[id] = { key: null, bar: Math.floor(px / (width / 3)), startX: px, lastX: px, done: false, mode: "" }
+            barPressed = bar[touches[id].bar] ? touches[id].bar : -1
+            return
+        }
         touches[id] = { key: k, startX: px, lastX: px, done: false, mode: "" }
         if (!k) {
             refreshPressed()
@@ -258,6 +448,12 @@ Rectangle {
             holdTimer.stop()
         if (!t)
             return
+        if (t.bar !== undefined) {
+            barPressed = -1
+            if (!cancelled && py < barHeight && Math.floor(px / (width / 3)) === t.bar)
+                pickSuggestion(t.bar)
+            return
+        }
         if (t.key && t.key.type === "backspace")
             repeatTimer.stop()
         if (t.mode === "accent") {
@@ -275,6 +471,10 @@ Rectangle {
             } else if (k.type === "space") {
                 typeSpace()
             } else if (k.type === "return") {
+                if (word !== "")
+                    endWord("")
+                lastCorrection = null
+                prevWord = ""
                 if (actionEnabled)
                     actionKey()
                 recent = ""
@@ -295,6 +495,7 @@ Rectangle {
         repeatTimer.stop()
         popupKey = null
         accentKey = null
+        barPressed = -1
         setPressed([])
     }
 
@@ -332,6 +533,98 @@ Rectangle {
         onTriggered: {
             kb.doBackspace()
             interval = 90
+        }
+    }
+
+    Timer {
+        id: barTimer
+        interval: 1
+        onTriggered: kb.updateBar()
+    }
+
+    Timer {
+        id: syncTimer
+        interval: 450
+        onTriggered: kb.contextWanted()
+    }
+
+    // Learned words are kept in dconf (Nemo.Configuration). Without it (desktop
+    // preview), learning still works but is forgotten on restart.
+    Loader {
+        id: store
+        source: "Store.qml"
+        onLoaded: {
+            P.load(item.value)
+            barTimer.restart()
+        }
+    }
+
+    Timer {
+        id: saveTimer
+        interval: 4000
+        onTriggered: kb.flush()
+    }
+
+    // Load the dictionary shortly after start, not on the first key press.
+    Timer {
+        running: true
+        interval: 300
+        onTriggered: { P.init(); kb.updateBar() }
+    }
+
+    // --- suggestion bar -------------------------------------------------------------
+    Item {
+        id: barView
+        visible: kb.barVisible && !kb.trackpad
+        width: kb.width
+        height: kb.barHeight
+        readonly property real slotW: width / 3
+
+        Repeater {
+            model: 3
+            delegate: Item {
+                readonly property var item: kb.bar.length > index ? kb.bar[index] : null
+                readonly property bool lit: item !== null && (kb.barPressed === index || item.auto)
+                x: index * barView.slotW
+                width: barView.slotW
+                height: barView.height
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: 1 * kb.sy
+                    width: parent.width - 10 * kb.unit
+                    height: 48 * kb.sy
+                    radius: 9 * kb.unit
+                    visible: parent.lit
+                    color: kb.barPressed === index ? kb.keyPressedColor : kb.keyColor
+                }
+                Text {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: 1 * kb.sy
+                    width: parent.width - 24 * kb.unit
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideMiddle
+                    text: parent.item ? (parent.item.quoted ? "\u201C" + parent.item.text + "\u201D" : parent.item.text) : ""
+                    color: kb.textColor
+                    font.family: kb.fontFamily
+                    font.pixelSize: 24 * kb.unit
+                }
+            }
+        }
+
+        Repeater {
+            model: 2
+            delegate: Rectangle {
+                readonly property var leftItem: kb.bar.length > index ? kb.bar[index] : null
+                readonly property var rightItem: kb.bar.length > index + 1 ? kb.bar[index + 1] : null
+                x: (index + 1) * barView.slotW - width / 2
+                y: 19 * kb.sy
+                width: Math.max(1, 1.5 * kb.unit)
+                height: 30 * kb.sy
+                color: "#4f4f4f"
+                visible: leftItem !== null && rightItem !== null && !leftItem.auto && !rightItem.auto
+                         && kb.barPressed !== index && kb.barPressed !== index + 1
+            }
         }
     }
 

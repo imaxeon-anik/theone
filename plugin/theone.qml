@@ -32,12 +32,17 @@ Item {
             actionLabel: MInputMethodQuick.actionKeyOverride ? MInputMethodQuick.actionKeyOverride.label : ""
             actionHighlighted: MInputMethodQuick.actionKeyOverride ? MInputMethodQuick.actionKeyOverride.highlighted : false
             actionEnabled: MInputMethodQuick.actionKeyOverride ? MInputMethodQuick.actionKeyOverride.enabled : true
+            // No suggestions or autocorrect in passwords, URLs, e-mail and number fields.
+            predictions: !MInputMethodQuick.hiddenText
+                         && MInputMethodQuick.contentType === Maliit.FreeTextContentType
+                         && MInputMethodQuick.predictionEnabled !== false
 
             onCommit: MInputMethodQuick.sendCommit(text, replaceStart, replaceLength)
             onBackspace: MInputMethodQuick.sendKey(Qt.Key_Backspace, 0, "\b", Maliit.KeyClick)
             onActionKey: MInputMethodQuick.activateActionKey()
             onCursorStep: MInputMethodQuick.sendKey(direction < 0 ? Qt.Key_Left : Qt.Key_Right,
                                                     0, "", Maliit.KeyClick)
+            onContextWanted: root.syncContext(true)
             onHeightChanged: root.updateRegion()
         }
     }
@@ -66,6 +71,13 @@ Item {
         keyboard.applyAutoCaps(start)
     }
 
+    function syncContext(force) {
+        if (!MInputMethodQuick.surroundingTextValid)
+            return
+        var text = MInputMethodQuick.surroundingText, pos = MInputMethodQuick.cursorPosition
+        keyboard.syncContext(text.substring(0, pos), text.substring(pos), force)
+    }
+
     function pageForContent() {
         var t = MInputMethodQuick.contentType
         return (t === Maliit.NumberContentType || t === Maliit.PhoneNumberContentType) ? "numbers" : "letters"
@@ -77,17 +89,23 @@ Item {
             if (MInputMethodQuick.active) {
                 keyboard.reset()
                 keyboard.page = root.pageForContent()
+                root.syncContext(true)
                 root.updateAutoCaps()
             } else {
                 keyboard.endAllTouches()
+                keyboard.flush()
             }
             root.updateRegion()
         }
         onAppOrientationChanged: root.updateRegion()
         onContentTypeChanged: keyboard.page = root.pageForContent()
-        onInputMethodReset: keyboard.recent = ""
-        onSurroundingTextChanged: root.updateAutoCaps()
-        onCursorPositionChanged: root.updateAutoCaps()
+        onInputMethodReset: {
+            keyboard.recent = ""
+            keyboard.resetWord()
+            root.syncContext(true)
+        }
+        onSurroundingTextChanged: { root.syncContext(false); root.updateAutoCaps() }
+        onCursorPositionChanged: { root.syncContext(false); root.updateAutoCaps() }
         onAutoCapitalizationChanged: root.updateAutoCaps()
     }
 

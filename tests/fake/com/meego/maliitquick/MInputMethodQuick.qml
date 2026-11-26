@@ -8,6 +8,7 @@ QtObject {
     property bool active: false
     property bool autoCapitalizationEnabled: true
     property bool hiddenText: false
+    property bool predictionEnabled: true
     property int contentType: 0
     property bool surroundingTextValid: true
     property string surroundingText: ""

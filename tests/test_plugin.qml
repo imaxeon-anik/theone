@@ -32,6 +32,18 @@ Item {
     function tapChar(c) { tap(keyFor(function (k) { return k.type === "char" && k.ch === c })) }
     function tapType(ty) { tap(keyFor(function (k) { return k.type === ty })) }
     function text() { return MInputMethodQuick.surroundingText }
+    function tapBar(i) {
+        var x = (i + 0.5) * kb.width / 3, y = 30 * kb.sy
+        kb.startTouch(7, x, y)
+        kb.endTouch(7, x, y, false)
+    }
+    function clearText() {
+        MInputMethodQuick.surroundingText = ""
+        MInputMethodQuick.cursorPosition = 0
+        kb.reset()
+        loader.item.syncContext(true)
+        loader.item.updateAutoCaps()
+    }
 
     // Each step runs after a short delay so bindings and timers settle.
     property var steps: [
@@ -84,6 +96,52 @@ Item {
             check("slide to second accent types é", text() === "Hi. O1'ABxyé", text())
             tapType("return")
             check("return activates the action key", MInputMethodQuick.log.indexOf("action") >= 0, MInputMethodQuick.log)
+            clearText()
+            tapChar("t"); tapChar("e"); tapChar("h")
+        },
+        function () {
+            var b = kb.bar
+            check("bar shows the typed word and the correction",
+                  b.length === 3 && b[0].quoted && b[0].text === "Teh" && b[1].text === "The" && b[1].auto,
+                  JSON.stringify(b))
+            tapType("space")
+            check("space autocorrects", text() === "The ", JSON.stringify(text()))
+            tapType("backspace")
+            check("backspace undoes the correction", text() === "Teh", JSON.stringify(text()))
+            tapType("space")
+            check("undone word is kept", text() === "Teh ", JSON.stringify(text()))
+            tapChar("d"); tapChar("o"); tapChar("n"); tapChar("t")
+            kb.typeText(".")
+            tapType("space")
+            check("punctuation autocorrects too", text() === "Teh don't. ", JSON.stringify(text()))
+        },
+        function () {
+            var b = kb.bar
+            check("sentence start predictions", b.length === 3 && b[0].text === "I", JSON.stringify(b))
+            tapBar(0)
+            check("tapping a prediction types it with a space", text() === "Teh don't. I ", JSON.stringify(text()))
+            tapChar("h"); tapChar("e"); tapChar("l"); tapChar("o")
+        },
+        function () {
+            check("bar offers hello for helo", kb.bar.length > 1 && kb.bar[1].text === "hello", JSON.stringify(kb.bar))
+            tapBar(1)
+            check("tapping a suggestion replaces the word", text() === "Teh don't. I hello ", JSON.stringify(text()))
+            tapBar(0)
+            check("next-word predictions type at the cursor", /hello \S+ $/.test(text()), JSON.stringify(text()))
+            clearText()
+            MInputMethodQuick.hiddenText = true
+        },
+        function () {
+            tapChar("t"); tapChar("e"); tapChar("h"); tapType("space")
+            check("no autocorrect in password fields", text() === "Teh " && kb.bar.length === 0,
+                  JSON.stringify(text()) + " " + JSON.stringify(kb.bar))
+            MInputMethodQuick.hiddenText = false
+            clearText()
+            MInputMethodQuick.surroundingText = "abc1"
+            MInputMethodQuick.cursorPosition = 4
+            loader.item.syncContext(true)
+            tapChar("x"); tapType("space")
+            check("no correction inside glued tokens", text() === "abc1x ", JSON.stringify(text()))
             MInputMethodQuick.appOrientation = 90
         },
         function () {
