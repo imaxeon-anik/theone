@@ -67,6 +67,12 @@ Page {
     }
 
     ConfigurationValue {
+        id: wideKeys
+        key: "/apps/theone-keyboard/wide-keys"
+        defaultValue: false
+    }
+
+    ConfigurationValue {
         id: learned
         key: "/apps/theone-keyboard/learned"
         defaultValue: ""
@@ -123,6 +129,18 @@ Page {
                 automaticCheck: false
                 checked: themeFont.value !== false
                 onClicked: themeFont.value = !checked
+            }
+
+            ComboBox {
+                label: "Key size"
+                currentIndex: wideKeys.value === true ? 1 : 0
+                description: currentIndex === 1
+                             ? "Keys look a little bigger, with narrower gaps. Each key still responds to the same area."
+                             : "Keys and gaps as on the iPhone."
+                menu: ContextMenu {
+                    MenuItem { text: "Standard"; onClicked: wideKeys.value = false }
+                    MenuItem { text: "Wide"; onClicked: wideKeys.value = true }
+                }
             }
 
             SectionHeader { text: "Suggestions" }

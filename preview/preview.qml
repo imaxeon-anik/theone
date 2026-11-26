@@ -29,6 +29,10 @@ Item {
           amb: { mode: "silica", light: false, highlight: "#c680ff", dimmer: "#1c0b2e" } },
         { name: "silica-orange-numbers", page: "numbers", shift: 0, popup: -1, accent: -1, word: "", wall: 1,
           amb: { mode: "silica", light: false, highlight: "#ff8c2e", dimmer: "#2b1300" } },
+        { name: "wide-iphone", page: "letters", shift: 0, popup: 14, accent: -1, word: "Teh",
+          amb: { mode: "off", light: false, highlight: "#0a84ff", wide: true } },
+        { name: "wide-silica", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh", wall: 0,
+          amb: { mode: "silica", light: false, highlight: "#c680ff", dimmer: "#1c0b2e", wide: true } },
         { name: "silica-light-accents", page: "letters", shift: 0, popup: -1, accent: 2, word: "hel", wall: 2,
           amb: { mode: "silica", light: true, highlight: "#1f6fd6", dimmer: "#e6eefa", primary: "#000000" } }
     ]

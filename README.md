@@ -64,6 +64,10 @@ theone-keyboard style iphone     # the iPhone look as it is (default)
 theone-keyboard style sailfish   # see-through glass keys in the ambience's colours and font
 ```
 
+**Key size** (Settings, or `theone-keyboard keys standard|wide`): Wide draws every key a
+little bigger, with the gaps narrowed from 9 to 6 units. Touches still go to the nearest
+key, so the area each key responds to is the same in both sizes.
+
 If the keyboard ever fails to appear, run `theone-keyboard off` over SSH or from a
 terminal with a hardware keyboard. Uninstalling the RPM also restores the stock keyboard.
 

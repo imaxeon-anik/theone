@@ -1,5 +1,5 @@
 Name: theone-keyboard
-Version: 0.5.2
+Version: 0.5.3
 Release: 1
 Summary: theOne, an iOS-style on-screen keyboard for Sailfish OS
 License: MIT and OFL-1.1 and CC-BY-SA-4.0

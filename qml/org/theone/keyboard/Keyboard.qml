@@ -25,6 +25,12 @@ Rectangle {
                                          : sailfish.item ? sailfish.item.highlight : "#0a84ff"
     readonly property bool silica: ambienceMode === "silica"
     property alias storeLoader: store   // settings (tests)
+    // Key size "wide": every key is drawn 1.5 units bigger on each side (gaps 9 -> 6).
+    // Only the drawing changes; touches still go to the nearest key, so the boundary
+    // between two keys stays in the middle of the gap.
+    readonly property bool wideKeys: previewAmbience && previewAmbience.wide !== undefined ? previewAmbience.wide
+                                   : store.item ? store.item.wideKeys === true : false
+    readonly property real grow: wideKeys ? 1.5 : 0
     readonly property bool themeLight: previewAmbience ? previewAmbience.light
                                      : sailfish.item ? sailfish.item.light : false
     readonly property bool light: silica && themeLight
@@ -365,9 +371,9 @@ Rectangle {
         delegate: Rectangle {
             readonly property var k: modelData
             readonly property bool down: kb.pressedIndexes.indexOf(k.index) >= 0
-            x: k.x * kb.sx
+            x: (k.x - (k.bare ? 0 : kb.grow)) * kb.sx
             y: k.y * kb.sy
-            width: k.w * kb.sx
+            width: (k.w + (k.bare ? 0 : 2 * kb.grow)) * kb.sx
             height: k.h * kb.sy
             radius: 10 * kb.unit
             // iOS colours the return key only for Go/Send; the Sailfish style always does.
@@ -733,9 +739,9 @@ Rectangle {
     KeyPopup {
         anchors.fill: parent
         visible: kb.popupKey !== null
-        kx: kb.popupKey ? kb.popupKey.x * kb.sx : 0
+        kx: kb.popupKey ? (kb.popupKey.x - kb.grow) * kb.sx : 0
         ky: kb.popupKey ? kb.popupKey.y * kb.sy : 0
-        kw: kb.popupKey ? kb.popupKey.w * kb.sx : 0
+        kw: kb.popupKey ? (kb.popupKey.w + 2 * kb.grow) * kb.sx : 0
         kh: kb.popupKey ? kb.popupKey.h * kb.sy : 0
         text: kb.popupKey ? kb.labelFor(kb.popupKey) : ""
         color: kb.popupColor

@@ -12,6 +12,12 @@ Item {
         key: "/apps/theone-keyboard/sailfish-font"
         defaultValue: true
     }
+    property alias wideKeys: wk.value    // key size: false = standard, true = wide
+    ConfigurationValue {
+        id: wk
+        key: "/apps/theone-keyboard/wide-keys"
+        defaultValue: false
+    }
     property alias debug: dbg.value      // log what the keyboard sees (theone-keyboard debug on)
     ConfigurationValue {
         id: dbg

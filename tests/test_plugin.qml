@@ -72,6 +72,23 @@ Item {
             check("Sailfish font switch off keeps Inter", kb.fontFamily !== "Sail Sans Test" && kb.fontFamily !== "",
                   kb.fontFamily)
             kb.storeLoader.item.themeFont = true
+            // Wide keys: drawn bigger, but each key answers to exactly the same area.
+            kb.storeLoader.item.ambience = "off"
+            var q = keyFor(function (k) { return k.ch === "q" }), w = keyFor(function (k) { return k.ch === "w" })
+            var edge = (q.x + q.w + w.x) / 2, y = (q.y + q.h / 2) * kb.sy
+            var before = MInputMethodQuick.surroundingText
+            kb.storeLoader.item.wideKeys = true
+            check("wide keys grow by 1.5 units each side", kb.grow === 1.5, kb.grow)
+            kb.startTouch(3, (edge - 0.3) * kb.sx, y); kb.endTouch(3, (edge - 0.3) * kb.sx, y, false)
+            kb.startTouch(3, (edge + 0.3) * kb.sx, y); kb.endTouch(3, (edge + 0.3) * kb.sx, y, false)
+            check("wide keys keep the boundary between q and w in the middle of the gap",
+                  /qw$/i.test(MInputMethodQuick.surroundingText), JSON.stringify(MInputMethodQuick.surroundingText))
+            kb.storeLoader.item.wideKeys = false
+            MInputMethodQuick.surroundingText = before
+            MInputMethodQuick.cursorPosition = before.length
+            kb.reset()
+            loader.item.syncContext(true)
+            loader.item.updateAutoCaps()
             kb.storeLoader.item.ambience = "off"
             check("iPhone style always uses Inter", kb.fontFamily !== "Sail Sans Test", kb.fontFamily)
             tapChar("h"); tapChar("i")
