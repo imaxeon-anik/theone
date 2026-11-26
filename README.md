@@ -1,7 +1,11 @@
 # theOne
 
 An iOS-style on-screen keyboard for Sailfish OS, built as a Maliit input method plugin.
-Dark look matched to an iPhone keyboard screenshot (`preview/reference.png`).
+Its dark look is modelled on the iPhone keyboard.
+
+theOne is an independent project, not affiliated with or endorsed by Apple. iOS and iPhone
+are trademarks of Apple Inc. theOne uses no Apple artwork or fonts: the font is Inter and
+the emoji are Google's Noto Emoji.
 
 - Solid rounded keys, magnified letter balloon while pressing
 - Shift: tap for one capital, double-tap for caps lock; automatic capitals at sentence start
@@ -67,7 +71,8 @@ terminal with a hardware keyboard. Uninstalling the RPM also restores the stock 
 ## Develop
 
 - `scripts/preview.sh` renders every keyboard state to `preview/out/` on the VM.
-- `python3 scripts/compare.py` compares the letter page with the reference screenshot.
+- `python3 scripts/compare.py` compares the letter page with a reference screenshot of your
+  own at `preview/local/reference.png` (kept out of the repo).
 - `python3 scripts/build_words.py` regenerates `Words.js` from `data/en_50k.txt`.
 - `tests/test_predict.qml` checks suggestions and autocorrect against common typos.
 - `tests/test_plugin.qml` drives `plugin/theone.qml` against a fake Maliit server:
@@ -87,6 +92,10 @@ ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND
 | `qml/org/theone/keyboard/Words.js` | Generated English word list (do not edit) |
 | `scripts/theone-keyboard` | On/off switch (edits `~/.config/maliit.org/server.conf`) |
 | `rpm/theone-keyboard.spec` | Package spec |
+
+## Licence
+
+theOne's code is under the MIT License (`LICENSE`). The bundled parts keep their own licences:
 
 Inter font: SIL Open Font License 1.1 (`qml/org/theone/keyboard/fonts/Inter-LICENSE.txt`).
 

@@ -1,5 +1,9 @@
 # Words theOne knows (so it never "corrects" them) but never suggests or
 # autocorrects to. One per line.
+#
+# This list deliberately contains swear words and slurs: they come from the
+# subtitle word counts, and listing them here is what keeps theOne from ever
+# offering them as suggestions.
 fuck
 fucking
 fucked

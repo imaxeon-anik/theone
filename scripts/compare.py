@@ -1,6 +1,8 @@
 """Compare a rendered keyboard with the reference screenshot.
 
 python3 scripts/compare.py [rendered.png]  ->  preview/out/compare.png and a score.
+The reference is your own 618 px wide screenshot of the dark iPhone keyboard, saved as
+preview/local/reference.png (not in the repo: it is Apple's artwork).
 The reference's top bar (suggestion text) and the mic are ignored: theOne leaves them out.
 """
 import sys
@@ -8,7 +10,10 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw
 
 root = Path(__file__).resolve().parent.parent
-ref = Image.open(root / "preview/reference.png").convert("RGB")
+ref_path = root / "preview/local/reference.png"
+if not ref_path.exists():
+    sys.exit("Put your reference screenshot at %s first." % ref_path)
+ref = Image.open(ref_path).convert("RGB")
 out = Image.open(sys.argv[1] if len(sys.argv) > 1 else root / "preview/out/letters-shift.png").convert("RGB")
 out = out.resize(ref.size) if out.size != ref.size else out
 
