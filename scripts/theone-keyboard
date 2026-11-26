@@ -3,7 +3,10 @@
 # Run as the normal user (defaultuser), not as root:
 #     theone-keyboard on | off | status
 #     theone-keyboard ambience off | accent | full
+#     theone-keyboard debug on | off     (log what the keyboard sees to the journal)
 set -u
+# dconf needs the session bus, which an SSH login doesn't set up.
+[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] || export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/dbus/user_bus_socket"
 CONF="$HOME/.config/maliit.org/server.conf"
 BACKUP="$CONF.before-theone"
 
@@ -65,8 +68,15 @@ ambience)
         ;;
     esac
     ;;
+debug)
+    case "${2:-}" in
+    on) dconf write /apps/theone-keyboard/debug true && echo "theOne logging is on (journalctl)." ;;
+    off) dconf write /apps/theone-keyboard/debug false && echo "theOne logging is off." ;;
+    *) echo "usage: theone-keyboard debug on|off" >&2; exit 2 ;;
+    esac
+    ;;
 *)
-    echo "usage: theone-keyboard on|off|status|ambience [off|accent|full]" >&2
+    echo "usage: theone-keyboard on|off|status|ambience [off|accent|full]|debug [on|off]" >&2
     exit 2
     ;;
 esac

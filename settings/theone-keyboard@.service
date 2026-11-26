@@ -1,0 +1,6 @@
+[Unit]
+Description=Switch the on-screen keyboard to theOne or back (%i)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/theone-keyboard %i

@@ -35,16 +35,18 @@ Rectangle {
         return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
     }
 
-    color: light ? (tinted ? mix("#d1d3d9", ambienceColor, 0.07) : "#d1d3d9")
-                 : (tinted ? mix("#1f1f1f", ambienceColor, 0.045) : "#1f1f1f")
-    readonly property color keyColor: light ? "#ffffff"
-                                    : tinted ? mix("#434343", ambienceColor, 0.04) : "#434343"
-    readonly property color keyPressedColor: light ? "#adb2ba" : "#6b6b6b"
+    color: light ? (tinted ? mix("#d1d3d9", ambienceColor, 0.14) : "#d1d3d9")
+                 : (tinted ? mix("#1f1f1f", ambienceColor, 0.11) : "#1f1f1f")
+    readonly property color keyColor: light ? (tinted ? mix("#ffffff", ambienceColor, 0.06) : "#ffffff")
+                                    : tinted ? mix("#434343", ambienceColor, 0.09) : "#434343"
+    // Pressed function keys and suggestions flash in the ambience colour.
+    readonly property color keyPressedColor: useAccent ? mix(light ? "#adb2ba" : "#6b6b6b", ambienceColor, 0.5)
+                                           : light ? "#adb2ba" : "#6b6b6b"
     readonly property color shadowColor: light ? "#8a8b8f" : "transparent"
     readonly property color textColor: light ? "#000000" : "#ffffff"
     readonly property color accentColor: useAccent ? ambienceColor : "#0a84ff"
     readonly property color accentTextColor: luma(accentColor) > 0.62 ? "#000000" : "#ffffff"
-    readonly property color barHighlightColor: useAccent ? mix(keyColor, accentColor, light ? 0.3 : 0.38) : keyColor
+    readonly property color barHighlightColor: useAccent ? accentColor : keyColor
     readonly property color separatorColor: light ? "#b3b6bc" : "#4f4f4f"
     readonly property color popupBorderColor: light ? "#a9adb4" : "#2a2a2a"
     readonly property string fontFamily: inter.status === FontLoader.Ready ? inter.name : ""
@@ -166,6 +168,8 @@ Rectangle {
                 items.push({ text: n[j], quoted: false, auto: false })
         }
         bar = items
+        if (debug)
+            log("bar " + JSON.stringify(items.map(function (it) { return it.text })))
     }
 
     // Finish the current word with sep (" ", ".", "" for return), applying autocorrect.
@@ -224,9 +228,22 @@ Rectangle {
         }
     }
 
+    // What theOne last wrote to dconf, to tell its own saves from outside changes
+    // (Settings -> theOne keyboard -> Forget learned words).
+    property string savedLearned: ""
+
+    // Diagnostics, off unless `theone-keyboard debug on`. Shows up in the journal.
+    readonly property bool debug: store.item ? store.item.debug === true : false
+    function log(msg) {
+        if (debug)
+            console.warn("theOne: " + msg)
+    }
+
     function flush() {
-        if (store.item && P.dirty)
-            store.item.value = P.dump()
+        if (store.item && P.dirty) {
+            savedLearned = P.dump()
+            store.item.value = savedLearned
+        }
     }
 
     // Called by the plugin when the editor's text/cursor changes.
@@ -339,7 +356,8 @@ Rectangle {
             width: k.w * kb.sx
             height: k.h * kb.sy
             radius: 10 * kb.unit
-            readonly property bool lit: k.type === "return" && kb.actionHighlighted
+            // iOS colours the return key only for Go/Send; with ambience colours it always is.
+            readonly property bool lit: k.type === "return" && (kb.actionHighlighted || kb.useAccent)
             color: k.bare ? "transparent"
                  : lit ? kb.accentColor
                  : (down && k.type !== "char") ? kb.keyPressedColor
@@ -594,13 +612,28 @@ Rectangle {
         id: sailfish
         source: "Ambience.qml"
     }
+    readonly property string themeStatus: sailfish.status === Loader.Ready ? "loaded"
+                                        : sailfish.status === Loader.Error ? "failed" : "loading"
 
     Loader {
         id: store
         source: "Store.qml"
         onLoaded: {
+            kb.savedLearned = String(item.value)
             P.load(item.value)
             barTimer.restart()
+        }
+    }
+
+    Connections {
+        target: store.item
+        onValueChanged: {
+            var v = String(store.item.value)
+            if (v !== kb.savedLearned) {
+                kb.savedLearned = v
+                P.load(v)
+                kb.updateBar()
+            }
         }
     }
 
@@ -650,7 +683,7 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideMiddle
                     text: parent.item ? (parent.item.quoted ? "\u201C" + parent.item.text + "\u201D" : parent.item.text) : ""
-                    color: kb.textColor
+                    color: parent.lit && kb.barPressed !== index && kb.useAccent ? kb.accentTextColor : kb.textColor
                     font.family: kb.fontFamily
                     font.pixelSize: 24 * kb.unit
                 }
@@ -767,7 +800,20 @@ Rectangle {
             delegate: Item {
                 width: emojiGrid.cellWidth
                 height: emojiGrid.cellHeight
+                Image {
+                    id: pic
+                    anchors.centerIn: parent
+                    width: 44 * kb.unit
+                    height: width
+                    sourceSize.width: 72
+                    sourceSize.height: 72
+                    asynchronous: true
+                    smooth: true
+                    source: L.emojiFile(modelData)
+                }
                 Text {
+                    // Only when there is no picture for it.
+                    visible: pic.status === Image.Error
                     anchors.centerIn: parent
                     text: modelData
                     font.pixelSize: 40 * kb.unit
@@ -802,9 +848,13 @@ Rectangle {
             spacing: 14 * kb.sx
             Repeater {
                 model: L.EMOJI.length
-                delegate: Text {
-                    text: L.EMOJI[index].icon
-                    font.pixelSize: 26 * kb.unit
+                delegate: Image {
+                    width: 28 * kb.unit
+                    height: width
+                    sourceSize.width: 72
+                    sourceSize.height: 72
+                    smooth: true
+                    source: L.emojiFile(L.EMOJI[index].icon)
                     opacity: 0.75
                     MouseArea {
                         anchors.fill: parent

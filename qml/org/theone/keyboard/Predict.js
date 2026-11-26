@@ -168,39 +168,36 @@ function subCost(a, b) {
 
 // Weighted edit distance (optimal string alignment). a = typed, b = candidate.
 // Gives up once the cost must exceed max.
+// Works in whole hundredths with Math.min: the Qt 5.6 JIT on 64-bit ARM (Sailfish
+// phones) crashes on the same loop written with fractional costs and comparisons.
 function distance(a, b, max) {
     var n = a.length, m = b.length
     if (Math.abs(n - m) > max * 2)
         return max + 1
-    var prev2 = null, prev = [0], cur, i, j
+    var lim = Math.round(max * 100), prev2 = [], prev = [0], cur, i, j, ca, cb, extra, rowMin, v
     for (j = 1; j <= m; ++j)
-        prev[j] = prev[j - 1] + ((j > 1 && b[j - 1] === b[j - 2]) ? 0.35 : 1)
+        prev.push(prev[j - 1] + ((j > 1 && b.charAt(j - 1) === b.charAt(j - 2)) ? 35 : 100))
     for (i = 1; i <= n; ++i) {
-        var ca = a[i - 1]
+        ca = a.charAt(i - 1)
         // An extra typed letter is cheap when it repeats or touches its neighbour.
-        var extra = (i > 1 && a[i - 2] === ca) ? 0.35 : (i > 1 && near(a[i - 2], ca)) ? 0.7 : 1
+        extra = (i > 1 && a.charAt(i - 2) === ca) ? 35 : (i > 1 && near(a.charAt(i - 2), ca)) ? 70 : 100
         cur = [prev[0] + extra]
-        var rowMin = cur[0]
+        rowMin = cur[0]
         for (j = 1; j <= m; ++j) {
-            var cb = b[j - 1]
-            var v = prev[j - 1] + subCost(ca, cb)
-            var del = prev[j] + extra
-            if (del < v) v = del
-            var ins = cur[j - 1] + ((j > 1 && b[j - 2] === cb) ? 0.35 : 1)
-            if (ins < v) v = ins
-            if (i > 1 && j > 1 && ca === b[j - 2] && a[i - 2] === cb) {
-                var tr = prev2[j - 2] + 0.6
-                if (tr < v) v = tr
-            }
-            cur[j] = v
-            if (v < rowMin) rowMin = v
+            cb = b.charAt(j - 1)
+            v = Math.min(prev[j - 1] + Math.round(subCost(ca, cb) * 100), prev[j] + extra,
+                         cur[j - 1] + ((j > 1 && b.charAt(j - 2) === cb) ? 35 : 100))
+            if (i > 1 && j > 1 && ca === b.charAt(j - 2) && a.charAt(i - 2) === cb)
+                v = Math.min(v, prev2[j - 2] + 60)
+            cur.push(v)
+            rowMin = Math.min(rowMin, v)
         }
-        if (rowMin > max)
+        if (rowMin > lim)
             return max + 1
         prev2 = prev
         prev = cur
     }
-    return prev[m]
+    return prev[m] / 100
 }
 
 function maxCost(n) {

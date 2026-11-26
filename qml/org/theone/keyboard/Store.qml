@@ -6,6 +6,12 @@ import Nemo.Configuration 1.0
 Item {
     property alias value: cfg.value
     property alias ambience: amb.value   // "off", "accent" or "full"
+    property alias debug: dbg.value      // log what the keyboard sees (theone-keyboard debug on)
+    ConfigurationValue {
+        id: dbg
+        key: "/apps/theone-keyboard/debug"
+        defaultValue: false
+    }
     ConfigurationValue {
         id: amb
         key: "/apps/theone-keyboard/ambience"

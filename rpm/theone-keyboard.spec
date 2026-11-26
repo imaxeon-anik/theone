@@ -1,5 +1,5 @@
 Name: theone-keyboard
-Version: 0.3.0
+Version: 0.4.6
 Release: 1
 Summary: theOne, an iOS-style on-screen keyboard for Sailfish OS
 License: MIT and OFL-1.1 and CC-BY-SA-4.0
@@ -8,6 +8,8 @@ Requires: maliit-framework-wayland
 Requires: nemo-qml-plugin-configuration-qt5
 Requires: sailfishsilica-qt5
 Requires: dconf
+Requires: nemo-qml-plugin-dbus-qt5
+Requires: jolla-settings
 
 %description
 theOne is a Maliit keyboard plugin for Sailfish OS with a dark, iOS-style look:
@@ -16,8 +18,8 @@ caps lock, double-space for a full stop, long-press accents, space-bar cursor
 moving, English word suggestions and autocorrect that learn your words, and number,
 symbol and emoji pages. Can follow the Sailfish ambience colours
 (`theone-keyboard ambience off|accent|full`). No haptics, no voice input, no swipe.
-Turn it on with `theone-keyboard on` (as your normal user) and off with
-`theone-keyboard off`. Includes the Inter font (SIL Open Font License 1.1) and an English word list
+Turn it on or off and pick the ambience colours in Settings -> theOne keyboard,
+or with `theone-keyboard on|off` (as your normal user). Includes the Inter font (SIL Open Font License 1.1) and an English word list
 from FrequencyWords (CC BY-SA 4.0).
 
 %prep
@@ -31,7 +33,13 @@ D=%{buildroot}%{_datadir}/maliit/plugins/org/theone/keyboard
 mkdir -p $D/fonts
 install -m 644 qml/org/theone/keyboard/qmldir qml/org/theone/keyboard/*.qml qml/org/theone/keyboard/*.js $D/
 install -m 644 qml/org/theone/keyboard/fonts/* $D/fonts/
+mkdir -p $D/emoji
+install -m 644 qml/org/theone/keyboard/emoji/* $D/emoji/
 install -D -m 755 scripts/theone-keyboard %{buildroot}%{_bindir}/theone-keyboard
+install -D -m 644 settings/theone-keyboard.json %{buildroot}%{_datadir}/jolla-settings/entries/theone-keyboard.json
+install -D -m 644 settings/theone-keyboard.qml %{buildroot}%{_datadir}/jolla-settings/pages/theone-keyboard/theone-keyboard.qml
+sed -i 's/@VERSION@/%{version}/' %{buildroot}%{_datadir}/jolla-settings/pages/theone-keyboard/theone-keyboard.qml
+install -D -m 644 settings/theone-keyboard@.service %{buildroot}%{_userunitdir}/theone-keyboard@.service
 
 %preun
 # On uninstall (not upgrade), give every user the stock keyboard back.
@@ -59,3 +67,6 @@ fi
 %{_libdir}/maliit/plugins/theone.qml
 %{_datadir}/maliit/plugins/org/theone
 %{_bindir}/theone-keyboard
+%{_datadir}/jolla-settings/entries/theone-keyboard.json
+%{_datadir}/jolla-settings/pages/theone-keyboard
+%{_userunitdir}/theone-keyboard@.service

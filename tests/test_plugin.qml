@@ -137,7 +137,7 @@ Item {
         },
         function () {
             tapChar("t"); tapChar("e"); tapChar("h"); tapType("space")
-            check("no autocorrect in password fields", text() === "Teh " && kb.bar.length === 0,
+            check("no autocorrect or auto-capital in password fields", text() === "teh " && kb.bar.length === 0,
                   JSON.stringify(text()) + " " + JSON.stringify(kb.bar))
             MInputMethodQuick.hiddenText = false
             clearText()
@@ -159,6 +159,33 @@ Item {
         function () {
             var a = MInputMethodQuick.area
             check("hidden keyboard frees the screen", a && a.width === 0 && a.height === 0, JSON.stringify(a))
+            // Sailfish: the keyboard opens with the previous field's type (a URL field here),
+            // and the real one arrives just after.
+            MInputMethodQuick.surroundingText = ""
+            MInputMethodQuick.cursorPosition = 0
+            MInputMethodQuick.contentType = Maliit.UrlContentType
+            MInputMethodQuick.active = true
+        },
+        function () {
+            check("no auto-capital in a URL field", kb.shiftState === 0, kb.shiftState)
+            MInputMethodQuick.contentType = Maliit.FreeTextContentType
+        },
+        function () {
+            check("auto-capital once the field turns out to be text", kb.shiftState === 1, kb.shiftState)
+            check("suggestions once the field turns out to be text", kb.predictions && kb.bar.length > 0,
+                  kb.predictions + " " + JSON.stringify(kb.bar))
+            // A passing "auto-capitals off" while the field still allows suggestions.
+            kb.shiftState = 0
+            MInputMethodQuick.autoCapitalizationEnabled = false
+            MInputMethodQuick.autoCapitalizationChanged()
+            check("auto-capital survives a passing capitals-off flag", kb.shiftState === 1, kb.shiftState)
+            // A field that wants neither (user names, keys) stays lower case.
+            MInputMethodQuick.predictionEnabled = false
+            MInputMethodQuick.autoCapitalizationChanged()
+            check("no auto-capital where the field turns off capitals and suggestions", kb.shiftState === 0, kb.shiftState)
+            MInputMethodQuick.predictionEnabled = true
+            MInputMethodQuick.autoCapitalizationEnabled = true
+            MInputMethodQuick.active = false
             console.log(failures === 0 ? "ALL TESTS PASSED" : failures + " TEST(S) FAILED")
             Qt.quit()
         }

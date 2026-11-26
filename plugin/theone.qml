@@ -56,7 +56,11 @@ Item {
     }
 
     function updateAutoCaps() {
-        var allowed = MInputMethodQuick.autoCapitalizationEnabled
+        // Sailfish sometimes reports auto-capitals as off for a moment while a normal text
+        // field opens. Fields that really want no capitals (user names, keys) also turn
+        // suggestions off, so only a field that does both is left in lower case.
+        var allowed = (MInputMethodQuick.autoCapitalizationEnabled
+                       || MInputMethodQuick.predictionEnabled !== false)
                 && !MInputMethodQuick.hiddenText
                 && MInputMethodQuick.contentType === Maliit.FreeTextContentType
         var start = false
@@ -68,6 +72,12 @@ Item {
                 start = keyboard.recent === "" || /[.!?]\s$/.test(keyboard.recent)
             }
         }
+        keyboard.log("autocaps: allowed " + allowed + ", start " + start + ", contentType "
+                     + MInputMethodQuick.contentType + ", autoCap " + MInputMethodQuick.autoCapitalizationEnabled
+                     + ", prediction " + MInputMethodQuick.predictionEnabled
+                     + ", hidden " + MInputMethodQuick.hiddenText
+                     + ", textValid " + MInputMethodQuick.surroundingTextValid
+                     + ", before " + JSON.stringify(MInputMethodQuick.surroundingText.substring(0, MInputMethodQuick.cursorPosition).slice(-12)))
         keyboard.applyAutoCaps(start)
     }
 
@@ -87,10 +97,17 @@ Item {
         target: MInputMethodQuick
         onActiveChanged: {
             if (MInputMethodQuick.active) {
+                keyboard.log("shown: contentType " + MInputMethodQuick.contentType
+                             + ", hiddenText " + MInputMethodQuick.hiddenText
+                             + ", predictionEnabled " + MInputMethodQuick.predictionEnabled
+                             + ", predictions " + keyboard.predictions
+                             + ", ambience " + keyboard.ambienceMode + " " + keyboard.ambienceColor
+                             + ", theme " + keyboard.themeStatus)
                 keyboard.reset()
                 keyboard.page = root.pageForContent()
                 root.syncContext(true)
                 root.updateAutoCaps()
+                settle.restart()
             } else {
                 keyboard.endAllTouches()
                 keyboard.flush()
@@ -98,7 +115,14 @@ Item {
             root.updateRegion()
         }
         onAppOrientationChanged: root.updateRegion()
-        onContentTypeChanged: keyboard.page = root.pageForContent()
+        // Sailfish sends the field's type and settings just after activating the keyboard,
+        // so decide capitals again when they arrive.
+        onContentTypeChanged: {
+            keyboard.page = root.pageForContent()
+            root.updateAutoCaps()
+        }
+        onHiddenTextChanged: root.updateAutoCaps()
+        onSurroundingTextValidChanged: { root.syncContext(true); root.updateAutoCaps() }
         onInputMethodReset: {
             keyboard.recent = ""
             keyboard.resetWord()
@@ -107,6 +131,13 @@ Item {
         onSurroundingTextChanged: { root.syncContext(false); root.updateAutoCaps() }
         onCursorPositionChanged: { root.syncContext(false); root.updateAutoCaps() }
         onAutoCapitalizationChanged: root.updateAutoCaps()
+    }
+
+    // And once more after the editor has settled, in case a value arrived without a signal.
+    Timer {
+        id: settle
+        interval: 120
+        onTriggered: if (MInputMethodQuick.active) root.updateAutoCaps()
     }
 
     onWidthChanged: updateRegion()

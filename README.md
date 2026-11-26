@@ -93,3 +93,8 @@ Inter font: SIL Open Font License 1.1 (`qml/org/theone/keyboard/fonts/Inter-LICE
 English word list: [FrequencyWords](https://github.com/hermitdave/FrequencyWords) by
 Hermit Dave, built from OpenSubtitles 2018, licensed CC BY-SA 4.0. `data/en_50k.txt` is
 the original file; `Words.js` is derived from it and carries the same licence.
+
+Emoji pictures: [Noto Emoji](https://github.com/googlefonts/noto-emoji) 3D set by Google,
+downloaded with `scripts/fetch_emoji.py` into `qml/org/theone/keyboard/emoji/` (licence in
+`emoji/LICENSE`). Qt 5.6 on Sailfish can't draw colour emoji fonts, so the emoji page shows
+these pictures; the emoji you type are still normal text, drawn by the app.

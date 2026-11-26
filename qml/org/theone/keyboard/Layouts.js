@@ -135,6 +135,26 @@ var EMOJI = [
     { icon: "❤️", list: "❤️ 💯 💢 💥 💫 💦 💨 🕳 💬 💭 💤 ✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ➗ ✖️ ♾ ‼️ ⁉️ ❓ ❔ ❕ ❗ 〰️ © ® ™ #️⃣ *️⃣ 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔠 🔡 🔢 🔣 🔤 🅰️ 🆎 🅱️ 🆑 🆒 🆓 ℹ️ 🆔 Ⓜ️ 🆕 🆖 🅾️ 🆗 🅿️ 🆘 🆙 🆚 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 🔸 🔹 🔶 🔷 🔳 🔲 ▪️ ▫️ ◾ ◽ ◼️ ◻️ ⬛ ⬜ 🔈 🔇 🔉 🔊 🔔 🔕 📣 📢 ♻️ ⚠️ 🚸 ⛔ 🚫 🚳 🚭 🚯 🚱 🚷 🔞 ☢️ ☣️ ⬆️ ↗️ ➡️ ↘️ ⬇️ ↙️ ⬅️ ↖️ ↕️ ↔️ ↩️ ↪️ 🔃 🔄 🔙 🔚 🔛 🔜 🔝" }
 ]
 
+// Colour picture for an emoji (Noto Emoji 3D, see scripts/fetch_emoji.py): code points
+// in hex without FE0F, joined by "_". Qt 5.6 cannot draw colour emoji fonts.
+function emojiFile(e) {
+    var parts = []
+    for (var i = 0; i < e.length; ++i) {
+        var c = e.charCodeAt(i)
+        if (c >= 0xD800 && c <= 0xDBFF && i + 1 < e.length) {
+            c = (c - 0xD800) * 0x400 + (e.charCodeAt(i + 1) - 0xDC00) + 0x10000
+            ++i
+        }
+        if (c === 0xFE0F)
+            continue
+        var h = c.toString(16)
+        while (h.length < 4)
+            h = "0" + h
+        parts.push(h)
+    }
+    return "emoji/" + parts.join("_") + ".png"
+}
+
 function emojiList() {
     var all = [], starts = []
     for (var c = 0; c < EMOJI.length; ++c) {

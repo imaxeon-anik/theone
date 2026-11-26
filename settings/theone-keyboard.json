@@ -1,0 +1,14 @@
+{
+    "entries": [
+    {
+        "path": "system_settings/system/theone_keyboard",
+        "title": "theOne keyboard",
+        "type": "page",
+        "icon": "image://theme/icon-m-keyboard",
+        "order": 251,
+        "params": {
+            "source": "/usr/share/jolla-settings/pages/theone-keyboard/theone-keyboard.qml"
+        }
+    }
+    ]
+}
