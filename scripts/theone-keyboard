@@ -1,0 +1,51 @@
+#!/bin/sh
+# Switch the on-screen keyboard between theOne and the stock Sailfish keyboard.
+# Run as the normal user (defaultuser), not as root:
+#     theone-keyboard on | off | status
+set -u
+CONF="$HOME/.config/maliit.org/server.conf"
+BACKUP="$CONF.before-theone"
+
+if [ "$(id -u)" = 0 ]; then
+    echo "Run this as your normal user, not as root (no devel-su)." >&2
+    exit 1
+fi
+
+restart() {
+    systemctl --user restart maliit-server.service 2>/dev/null || {
+        killall maliit-server 2>/dev/null
+        true
+    }
+}
+
+case "${1:-status}" in
+on)
+    mkdir -p "$(dirname "$CONF")"
+    if [ -f "$CONF" ] && ! grep -q 'theone.qml' "$CONF"; then
+        cp "$CONF" "$BACKUP"
+    fi
+    printf '[maliit]\nonscreen\\active=theone.qml\nonscreen\\enabled=theone.qml, jolla-keyboard.qml\n' > "$CONF"
+    restart
+    echo "theOne keyboard is on. Undo with: theone-keyboard off"
+    ;;
+off)
+    if [ -f "$BACKUP" ]; then
+        mv -f "$BACKUP" "$CONF"
+    else
+        rm -f "$CONF"
+    fi
+    restart
+    echo "Stock Sailfish keyboard restored."
+    ;;
+status)
+    if [ -f "$CONF" ] && grep -q 'active=theone.qml' "$CONF"; then
+        echo "on"
+    else
+        echo "off"
+    fi
+    ;;
+*)
+    echo "usage: theone-keyboard on|off|status" >&2
+    exit 2
+    ;;
+esac
