@@ -18,6 +18,12 @@ Item {
         key: "/apps/theone-keyboard/wide-keys"
         defaultValue: false
     }
+    property alias swipe: sw.value       // swipe typing on (true) or off
+    ConfigurationValue {
+        id: sw
+        key: "/apps/theone-keyboard/swipe"
+        defaultValue: false
+    }
     property alias debug: dbg.value      // log what the keyboard sees (theone-keyboard debug on)
     ConfigurationValue {
         id: dbg

@@ -4,6 +4,7 @@
 #     theone-keyboard on | off | status
 #     theone-keyboard style classic | sailfish
 #     theone-keyboard keys standard | wide
+#     theone-keyboard swipe on | off
 #     theone-keyboard debug on | off     (log what the keyboard sees to the journal)
 set -u
 # dconf needs the session bus, which an SSH login doesn't set up.
@@ -75,6 +76,15 @@ keys)
     *) echo "usage: theone-keyboard keys standard|wide" >&2; exit 2 ;;
     esac
     ;;
+swipe)
+    KEY=/apps/theone-keyboard/swipe
+    case "${2:-}" in
+    on) dconf write "$KEY" true && echo "Swipe typing: on" ;;
+    off) dconf write "$KEY" false && echo "Swipe typing: off" ;;
+    "") [ "$(dconf read "$KEY" 2>/dev/null)" = true ] && echo on || echo off ;;
+    *) echo "usage: theone-keyboard swipe on|off" >&2; exit 2 ;;
+    esac
+    ;;
 debug)
     case "${2:-}" in
     on) dconf write /apps/theone-keyboard/debug true && echo "theOne logging is on (journalctl)." ;;
@@ -83,7 +93,7 @@ debug)
     esac
     ;;
 *)
-    echo "usage: theone-keyboard on|off|status|style [classic|sailfish]|keys [standard|wide]|debug [on|off]" >&2
+    echo "usage: theone-keyboard on|off|status|style [classic|sailfish]|keys [standard|wide]|swipe [on|off]|debug [on|off]" >&2
     exit 2
     ;;
 esac

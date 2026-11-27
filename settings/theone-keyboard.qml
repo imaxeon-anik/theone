@@ -73,6 +73,12 @@ Page {
     }
 
     ConfigurationValue {
+        id: swipe
+        key: "/apps/theone-keyboard/swipe"
+        defaultValue: false
+    }
+
+    ConfigurationValue {
         id: learned
         key: "/apps/theone-keyboard/learned"
         defaultValue: ""
@@ -141,6 +147,18 @@ Page {
                     MenuItem { text: "Standard"; onClicked: wideKeys.value = false }
                     MenuItem { text: "Wide"; onClicked: wideKeys.value = true }
                 }
+            }
+
+            SectionHeader { text: "Typing" }
+
+            TextSwitch {
+                text: "Swipe typing"
+                description: checked
+                             ? "Slide your finger from letter to letter without lifting it, and theOne writes the word. Other guesses appear in the suggestion bar; backspace right after a swipe removes the word."
+                             : "Type by tapping keys only. Turn on to also write words by sliding across the letters."
+                automaticCheck: false
+                checked: swipe.value === true
+                onClicked: swipe.value = !checked
             }
 
             SectionHeader { text: "Suggestions" }

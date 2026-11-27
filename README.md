@@ -27,7 +27,8 @@ the emoji are Google's Noto Emoji.
 - Number (`123`), symbol (`#+=`) and emoji pages
 - Optional Sailfish style that follows your ambience, and a Wide key size (see below)
 - Settings page: **Settings → System → theOne keyboard**
-- No haptics, no voice input, no swipe typing
+- Optional swipe typing: slide across the letters to write a word (off by default)
+- No haptics, no voice input
 
 Tested on a Sony Xperia 10 V running Sailfish OS 5, plus the desktop preview and a
 fake-Maliit test harness.
@@ -79,6 +80,14 @@ theone-keyboard style sailfish   # see-through glass keys in the ambience's colo
 little bigger, with the gaps narrowed from 9 to 6 units. Touches still go to the nearest
 key, so the area each key responds to is the same in both sizes.
 
+**Swipe typing** (Settings, or `theone-keyboard swipe on|off`): slide your finger from
+letter to letter without lifting it. theOne writes the most likely word and puts its next
+guesses in the suggestion bar; tap one to swap it in. The next swipe adds the space by
+itself, and backspace right after a swipe removes the whole word. A slide shorter than
+about one key still just moves to the neighbouring letter, so for two-letter words on
+neighbouring keys ("as", "we") tap instead. Swiping is off in password, URL, e-mail and
+number fields.
+
 If the keyboard ever fails to appear, run `theone-keyboard off` over SSH or from a
 terminal with a hardware keyboard. Uninstalling the RPM also restores the stock keyboard.
 
@@ -89,11 +98,13 @@ terminal with a hardware keyboard. Uninstalling the RPM also restores the stock 
   own at `preview/local/reference.png` (kept out of the repo).
 - `python3 scripts/build_words.py` regenerates `Words.js` from `data/en_50k.txt`.
 - `tests/test_predict.qml` checks suggestions and autocorrect against common typos.
+- `tests/test_swipe.qml` checks the swipe decoder with drawn, wobbly paths.
 - `tests/test_plugin.qml` drives `plugin/theone.qml` against a fake Maliit server:
 
 ```bash
 ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmlscene -I fake -I ../qml test_plugin.qml'
 ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmlscene test_predict.qml'
+ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmlscene test_swipe.qml'
 ```
 
 ## Layout
@@ -103,6 +114,7 @@ ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND
 | `plugin/theone.qml` | Maliit entry point, installed to `/usr/lib64/maliit/plugins/` |
 | `qml/org/theone/keyboard/` | The keyboard module, installed to `/usr/share/maliit/plugins/` |
 | `qml/org/theone/keyboard/Predict.js` | Suggestions, autocorrect and learning |
+| `qml/org/theone/keyboard/Swipe.js` | Swipe typing: matches the drawn path to words |
 | `qml/org/theone/keyboard/Words.js` | Generated English word list (do not edit) |
 | `scripts/theone-keyboard` | On/off switch (edits `~/.config/maliit.org/server.conf`) |
 | `rpm/theone-keyboard.spec` | Package spec |

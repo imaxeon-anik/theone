@@ -1,6 +1,7 @@
 import QtQuick 2.6
 import "Layouts.js" as L
 import "Predict.js" as P
+import "Swipe.js" as S
 
 // theOne keyboard surface. Knows nothing about Maliit: it emits signals and the
 // plugin entry file (theone.qml) forwards them to the input method server.
@@ -31,6 +32,9 @@ Rectangle {
     readonly property bool wideKeys: previewAmbience && previewAmbience.wide !== undefined ? previewAmbience.wide
                                    : store.item ? store.item.wideKeys === true : false
     readonly property real grow: wideKeys ? 1.5 : 0
+    // Swipe typing (Settings -> theOne keyboard -> Swipe typing). Off by default.
+    readonly property bool swipeEnabled: previewAmbience && previewAmbience.swipe !== undefined ? previewAmbience.swipe
+                                       : store.item ? store.item.swipe === true : false
     readonly property bool themeLight: previewAmbience ? previewAmbience.light
                                      : sailfish.item ? sailfish.item.light : false
     readonly property bool light: silica && themeLight
@@ -106,9 +110,15 @@ Rectangle {
     property var bar: []              // [{ text, quoted, auto }]
     property int barPressed: -1
     readonly property bool barVisible: predictions && page !== "emoji"
+    // Swiping needs the word list, so not in password, URL, e-mail or number fields.
+    readonly property bool canSwipe: swipeEnabled && predictions && page === "letters"
+    property var swiped: null         // { text, items } the word a swipe just wrote, until it is finished
+    property bool swiping: false
     readonly property real barHeight: L.BAND[0][0] * sy
 
     onWordChanged: barTimer.restart()
+    onSwipeEnabledChanged: if (swipeEnabled) indexTimer.restart()
+    Timer { id: indexTimer; interval: 300; onTriggered: S.buildIndex() }
     onPrevWordChanged: barTimer.restart()
     onBrokenWordChanged: barTimer.restart()
     onPredictionsChanged: barTimer.restart()
@@ -132,6 +142,7 @@ Rectangle {
     }
 
     function resetWord() {
+        swiped = null
         word = ""
         brokenWord = false
         rejected = ""
@@ -163,6 +174,7 @@ Rectangle {
         brokenWord = broken
         rejected = ""
         lastCorrection = null
+        swiped = null
         var pm = /([A-Za-z\u00C0-\u024F']+)[\s,;:]*$/.exec(before.slice(0, before.length - run.length))
         prevWord = pm ? pm[1] : ""
     }
@@ -176,6 +188,10 @@ Rectangle {
         var items = []
         if (brokenWord) {
             items = []
+        } else if (swiped && word === swiped.text) {
+            // After a swipe: the word it wrote (highlighted) and the next best guesses.
+            for (var a = 0; a < swiped.items.length && a < 3; ++a)
+                items.push({ text: swiped.items[a], quoted: false, auto: a === 0 })
         } else if (word !== "") {
             var s = P.suggest(word)
             var auto = word === rejected ? "" : s.auto
@@ -198,7 +214,9 @@ Rectangle {
         syncTimer.restart()
         var typed = brokenWord ? "" : word
         var result = typed
-        var auto = (predictions && typed !== "" && typed !== rejected) ? P.suggest(typed).auto : ""
+        var wasSwiped = swiped !== null && typed === swiped.text
+        swiped = null
+        var auto = (predictions && typed !== "" && typed !== rejected && !wasSwiped) ? P.suggest(typed).auto : ""
         if (auto !== "" && auto !== typed) {
             commit(auto + sep, -typed.length, typed.length)
             lastCorrection = { original: typed, corrected: auto, sep: sep, prev: prevWord }
@@ -236,6 +254,7 @@ Rectangle {
             saveTimer.restart()
         }
         prevWord = it.text
+        swiped = null
         word = ""
         rejected = ""
         brokenWord = false
@@ -280,6 +299,35 @@ Rectangle {
         }
     }
 
+    // Write the word a swipe drew. points: the finger's path in reference units.
+    function swipeWord(points) {
+        lastEditTime = Date.now()
+        syncTimer.restart()
+        if (word !== "" && !brokenWord)
+            endWord(" ")              // the word before it (typed or swiped) is finished
+        var res = S.decode(points, prevWord, 4)
+        log("swipe " + points.length + " points -> " + JSON.stringify(res.map(function (r) { return r.w })))
+        if (res.length === 0)
+            return
+        // Upper case with caps lock, a capital after shift or at a sentence start.
+        var cap = shiftState === 2 ? "AA" : shiftState === 1 ? "A" : ""
+        var items = res.map(function (r) { return P.display(r.w, cap) })
+        var lead = /[0-9A-Za-z\u00C0-\u024F.,!?;:)]$/.test(recent) ? " " : ""
+        commit(lead + items[0], 0, 0)
+        lastCorrection = null
+        rejected = ""
+        brokenWord = false
+        swiped = { text: items[0], items: items.slice(0, 3) }
+        word = items[0]
+        recent = (recent + lead + items[0]).slice(-4)
+        lastSpaceTime = 0
+        if (shiftState === 1) {
+            shiftState = 0
+            autoShifted = false
+        }
+        updateBar()
+    }
+
     function labelFor(k) {
         if (k.type !== "char")
             return ""
@@ -290,6 +338,9 @@ Rectangle {
         lastEditTime = Date.now()
         syncTimer.restart()
         lastCorrection = null
+        // Punctuation finishes a swiped word (endWord); anything else makes it the user's own.
+        if (swiped && !/^[.,!?;:)"]$/.test(t))
+            swiped = null
         if (isLetter(t) || (t === "'" && word !== "")) {
             if (word === "" && /[0-9A-Za-z\u00C0-\u024F]$/.test(recent))
                 brokenWord = true
@@ -345,6 +396,16 @@ Rectangle {
     function doBackspace() {
         lastEditTime = Date.now()
         syncTimer.restart()
+        if (swiped && word === swiped.text) {
+            // Right after a swipe, backspace takes the whole word away.
+            var n = word.length
+            commit("", -n, n)
+            recent = recent.slice(0, Math.max(0, recent.length - n))
+            swiped = null
+            word = ""
+            rejected = ""
+            return
+        }
         var c = lastCorrection
         if (c) {
             // Undo the autocorrection that was just made, and keep the typed word.
@@ -437,7 +498,7 @@ Rectangle {
     function refreshPressed() {
         var list = []
         for (var id in touches)
-            if (touches[id].key && !touches[id].done)
+            if (touches[id].key && !touches[id].done && touches[id].mode !== "swipe")
                 list.push(touches[id].key.index)
         setPressed(list)
     }
@@ -461,7 +522,8 @@ Rectangle {
             barPressed = bar[touches[id].bar] ? touches[id].bar : -1
             return
         }
-        touches[id] = { key: k, startX: px, lastX: px, done: false, mode: "" }
+        touches[id] = { key: k, startX: px, startY: py, lastX: px, done: false, mode: "",
+                        path: (canSwipe && k && k.type === "char") ? [{ x: px / sx, y: py / sy }] : null }
         if (!k) {
             refreshPressed()
             return
@@ -490,6 +552,20 @@ Rectangle {
             accentIndex = Math.max(0, Math.min(accentKey.accents.length - 1, i))
             return
         }
+        if (t.path) {
+            t.path.push({ x: px / sx, y: py / sy })
+            if (t.mode === "swipe") {
+                trail.add(px, py)
+                return
+            }
+            // Moving further than about one key from where the finger landed starts a swipe;
+            // shorter slides still just move to the neighbouring letter.
+            var dx = (px - t.startX) / sx, dy = (py - t.startY) / sy
+            if (t.mode === "" && dx * dx + dy * dy > 1.21 * L.PITCH * L.PITCH && onlyTouch(id)) {
+                startSwipe(id)
+                return
+            }
+        }
         if (t.mode === "trackpad") {
             var step = 13 * sx
             while (px - t.lastX > step) { cursorStep(1); t.lastX += step }
@@ -514,6 +590,14 @@ Rectangle {
             holdTimer.stop()
         if (!t)
             return
+        if (t.mode === "swipe") {
+            swiping = false
+            trail.clear()
+            if (!cancelled)
+                swipeWord(t.path)
+            refreshPressed()
+            return
+        }
         if (t.bar !== undefined) {
             barPressed = -1
             if (!cancelled && py < barHeight && Math.floor(px / (width / 3)) === t.bar)
@@ -555,7 +639,28 @@ Rectangle {
         refreshPressed()
     }
 
+    function onlyTouch(id) {
+        for (var other in touches)
+            if (other != id && !touches[other].done)
+                return false
+        return true
+    }
+
+    function startSwipe(id) {
+        var t = touches[id]
+        t.mode = "swipe"
+        swiping = true
+        holdTimer.stop()
+        showPopupFor(null)
+        trail.clear()
+        for (var i = 0; i < t.path.length; ++i)
+            trail.add(t.path[i].x * sx, t.path[i].y * sy)
+        refreshPressed()
+    }
+
     function endAllTouches() {
+        swiping = false
+        trail.clear()
         touches = ({})
         holdTimer.stop()
         repeatTimer.stop()
@@ -656,7 +761,7 @@ Rectangle {
     Timer {
         running: true
         interval: 300
-        onTriggered: { P.init(); kb.updateBar() }
+        onTriggered: { P.init(); kb.updateBar(); if (kb.swipeEnabled) S.buildIndex() }
     }
 
     // --- suggestion bar -------------------------------------------------------------
@@ -712,6 +817,39 @@ Rectangle {
                 visible: leftItem !== null && rightItem !== null && !leftItem.auto && !rightItem.auto
                          && kb.barPressed !== index && kb.barPressed !== index + 1
             }
+        }
+    }
+
+    // The line a swipe draws. Only the last stretch is kept, so it trails the finger.
+    Canvas {
+        id: trail
+        anchors.fill: parent
+        visible: kb.swiping
+        property var pts: []
+        function add(x, y) {
+            pts.push({ x: x, y: y })
+            if (pts.length > 40)
+                pts.shift()
+            requestPaint()
+        }
+        function clear() {
+            pts = []
+            requestPaint()
+        }
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            if (pts.length < 2)
+                return
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+            ctx.lineWidth = 9 * kb.unit
+            ctx.strokeStyle = kb.alpha(kb.accentColor, 0.6)
+            ctx.beginPath()
+            ctx.moveTo(pts[0].x, pts[0].y)
+            for (var i = 1; i < pts.length; ++i)
+                ctx.lineTo(pts[i].x, pts[i].y)
+            ctx.stroke()
         }
     }
 
