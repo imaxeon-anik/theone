@@ -5,8 +5,6 @@ Summary: theOne, an iOS-style on-screen keyboard for Sailfish OS
 License: MIT and OFL and CC-BY-SA and ASL 2.0
 URL: https://github.com/imaxeon-anik/theone
 Source0: %{name}-%{version}.tar.bz2
-# systemd provides the user-unit directory macro, missing on minimal build roots (OBS).
-BuildRequires: systemd
 Requires: maliit-framework-wayland
 Requires: nemo-qml-plugin-configuration-qt5
 Requires: sailfishsilica-qt5
@@ -66,7 +64,7 @@ install -D -m 755 scripts/theone-keyboard %{buildroot}%{_bindir}/theone-keyboard
 install -D -m 644 settings/theone-keyboard.json %{buildroot}%{_datadir}/jolla-settings/entries/theone-keyboard.json
 install -D -m 644 settings/theone-keyboard.qml %{buildroot}%{_datadir}/jolla-settings/pages/theone-keyboard/theone-keyboard.qml
 sed -i 's/@VERSION@/%{version}/' %{buildroot}%{_datadir}/jolla-settings/pages/theone-keyboard/theone-keyboard.qml
-install -D -m 644 settings/theone-keyboard@.service %{buildroot}%{_userunitdir}/theone-keyboard@.service
+install -D -m 644 settings/theone-keyboard@.service %{buildroot}%{_prefix}/lib/systemd/user/theone-keyboard@.service
 
 %preun
 # On uninstall (not upgrade), give every user the stock keyboard back.
@@ -96,4 +94,4 @@ fi
 %{_bindir}/theone-keyboard
 %{_datadir}/jolla-settings/entries/theone-keyboard.json
 %{_datadir}/jolla-settings/pages/theone-keyboard
-%{_userunitdir}/theone-keyboard@.service
+%{_prefix}/lib/systemd/user/theone-keyboard@.service
