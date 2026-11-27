@@ -1,9 +1,12 @@
 Name: theone-keyboard
-Version: 0.6.0
+Version: 0.6.1
 Release: 1
 Summary: theOne, an iOS-style on-screen keyboard for Sailfish OS
-License: MIT and OFL-1.1 and CC-BY-SA-4.0
+License: MIT and OFL and CC-BY-SA and ASL 2.0
+URL: https://github.com/imaxeon-anik/theone
 Source0: %{name}-%{version}.tar.bz2
+# systemd provides the user-unit directory macro, missing on minimal build roots (OBS).
+BuildRequires: systemd
 Requires: maliit-framework-wayland
 Requires: nemo-qml-plugin-configuration-qt5
 Requires: sailfishsilica-qt5
@@ -11,6 +14,8 @@ Requires: dconf
 Requires: nemo-qml-plugin-dbus-qt5
 Requires: jolla-settings
 
+# The last paragraph of the description is metadata for SailfishOS:Chum, see
+# https://github.com/sailfishos-chum/main/blob/main/Metadata.md
 %description
 theOne is a Maliit keyboard plugin for Sailfish OS with a dark, iOS-style look:
 solid rounded keys, a magnified letter balloon while typing, iOS-style shift and
@@ -18,9 +23,31 @@ caps lock, double-space for a full stop, long-press accents, space-bar cursor
 moving, English word suggestions and autocorrect that learn your words, and number,
 symbol and emoji pages. Optional swipe typing. Optional Sailfish style: see-through glass keys in
 your ambience's colours and font. No haptics, no voice input.
-Turn it on or off and pick the style in Settings -> theOne keyboard,
-or with `theone-keyboard on|off` (as your normal user). Includes the Inter font (SIL Open Font License 1.1) and an English word list
-from FrequencyWords (CC BY-SA 4.0).
+Turn it on or off and pick the style in Settings -> System -> theOne keyboard,
+or with `theone-keyboard on|off` (as your normal user). Includes the Inter font
+(SIL Open Font License 1.1), an English word list from FrequencyWords (CC BY-SA 4.0)
+and Noto Emoji pictures (Apache License 2.0).
+
+%if 0%{?_chum}
+Title: theOne keyboard
+Type: inputmethod
+DeveloperName: Anik
+Categories:
+ - Utility
+Custom:
+  Repo: https://github.com/imaxeon-anik/theone
+PackageIcon: https://github.com/imaxeon-anik/theone/raw/main/docs/icon.svg
+AIRating: V
+AINote: Written with Claude Code (Anthropic) to the author's design; tested on a Sony Xperia 10 V
+Screenshots:
+ - https://github.com/imaxeon-anik/theone/raw/main/docs/classic.png
+ - https://github.com/imaxeon-anik/theone/raw/main/docs/sailfish.png
+ - https://github.com/imaxeon-anik/theone/raw/main/docs/typing.png
+ - https://github.com/imaxeon-anik/theone/raw/main/docs/emoji.png
+Links:
+  Homepage: https://github.com/imaxeon-anik/theone
+  Bugtracker: https://github.com/imaxeon-anik/theone/issues
+%endif
 
 %prep
 %setup -q -n %{name}-%{version}

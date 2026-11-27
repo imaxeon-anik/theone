@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- theOne icon: one rounded key on the dark keyboard background. -->
+  <rect width="256" height="256" rx="56" fill="#1f1f1f"/>
+  <rect x="44" y="40" width="168" height="168" rx="30" fill="#434343"/>
+  <rect x="44" y="200" width="168" height="10" rx="5" fill="#000000" opacity="0.35"/>
+  <path d="M136 76 L136 160 L160 160 L160 176 L96 176 L96 160 L118 160 L118 102 L98 114 L98 96 L122 76 Z" fill="#ffffff"/>
+  <rect x="88" y="222" width="80" height="12" rx="6" fill="#0a84ff"/>
+</svg>
