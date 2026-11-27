@@ -235,6 +235,49 @@ Item {
             loader.item.syncContext(true)
             tapChar("x"); tapType("space")
             check("no correction inside glued tokens", text() === "abc1x ", JSON.stringify(text()))
+        },
+        function () {
+            // Emoji search: the search field takes the letters, the app gets only the emoji.
+            clearText()
+            tapType("emoji")
+            check("emoji key opens the emoji page", kb.page === "emoji", kb.page)
+            kb.startEmojiSearch()
+            check("search shows the letters and hides the suggestion bar",
+                  kb.emojiSearch && kb.page === "letters" && !kb.barVisible && !kb.canSwipe,
+                  kb.emojiSearch + " " + kb.page + " " + kb.barVisible)
+            kb.pressShift()
+            check("shift shows off while searching", kb.labelFor(keyFor(function (k) { return k.type === "char" })) === "q", "")
+            tapChar("p"); tapChar("i"); tapChar("z"); tapChar("z"); tapChar("a")
+            check("letters go to the search, in lower case", kb.searchText === "pizza", JSON.stringify(kb.searchText))
+            check("nothing is typed into the app while searching", text() === "", JSON.stringify(text()))
+            check("pizza finds the pizza", kb.searchResults[0] === "\ud83c\udf55", JSON.stringify(kb.searchResults))
+            kb.typeText(kb.searchResults[0], true)
+            check("a picked emoji is typed into the app", text() === "\ud83c\udf55", JSON.stringify(text()))
+            check("the search stays open after picking", kb.emojiSearch && kb.searchText === "pizza", kb.emojiSearch)
+            tapType("backspace")
+            check("backspace edits the search, not the app",
+                  kb.searchText === "pizz" && text() === "\ud83c\udf55", JSON.stringify(kb.searchText) + " " + JSON.stringify(text()))
+            tapType("backspace"); tapType("backspace"); tapType("backspace"); tapType("backspace"); tapType("backspace")
+            tapType("space")
+            check("no leading space in the search", kb.searchText === "", JSON.stringify(kb.searchText))
+            tapChar("x"); tapChar("q"); tapChar("z")
+            check("no matches gives an empty row", kb.searchResults.length === 0, JSON.stringify(kb.searchResults))
+            tapType("return")
+            check("Done leaves the search for normal typing",
+                  !kb.emojiSearch && kb.page === "letters" && kb.searchText === "" && text() === "\ud83c\udf55",
+                  kb.emojiSearch + " " + kb.page + " " + JSON.stringify(text()))
+            tapChar("h"); tapChar("i")
+            check("after the search the letters go to the app again", text().toLowerCase() === "\ud83c\udf55hi", JSON.stringify(text()))
+            kb.startEmojiSearch()
+            tapChar("c")
+            tapType("emoji")
+            check("the emoji key goes back to the emoji page", kb.page === "emoji" && !kb.emojiSearch,
+                  kb.page + " " + kb.emojiSearch)
+            kb.startEmojiSearch()
+            kb.reset()
+            check("reset ends the search", !kb.emojiSearch && kb.searchText === "", kb.emojiSearch)
+        },
+        function () {
             MInputMethodQuick.appOrientation = 90
         },
         function () {

@@ -78,6 +78,12 @@ Rectangle {
 
     // --- state ----------------------------------------------------------------------
     property string page: "letters"        // letters | numbers | symbols | emoji
+    // Emoji search: the letter keys type into searchText (not the app) and the
+    // suggestion bar shows the search field and the matching emoji.
+    property bool emojiSearch: false
+    property string searchText: ""
+    readonly property var searchResults: emojiSearch ? L.searchEmoji(searchText, 60) : []
+    onPageChanged: if (page === "emoji") emojiSearch = false
     property int shiftState: 0             // 0 off, 1 next letter, 2 caps lock
     property bool autoShifted: false
     property bool trackpad: false
@@ -109,9 +115,9 @@ Rectangle {
     property double lastEditTime: 0
     property var bar: []              // [{ text, quoted, auto }]
     property int barPressed: -1
-    readonly property bool barVisible: predictions && page !== "emoji"
+    readonly property bool barVisible: predictions && page !== "emoji" && !emojiSearch
     // Swiping needs the word list, so not in password, URL, e-mail or number fields.
-    readonly property bool canSwipe: swipeEnabled && predictions && page === "letters"
+    readonly property bool canSwipe: swipeEnabled && predictions && page === "letters" && !emojiSearch
     property var swiped: null         // { text, items } the word a swipe just wrote, until it is finished
     property bool swiping: false
     readonly property real barHeight: L.BAND[0][0] * sy
@@ -132,6 +138,8 @@ Rectangle {
 
     function reset() {
         page = "letters"
+        emojiSearch = false
+        searchText = ""
         shiftState = 0
         autoShifted = false
         recent = ""
@@ -331,10 +339,28 @@ Rectangle {
     function labelFor(k) {
         if (k.type !== "char")
             return ""
-        return (page === "letters" && shiftState > 0) ? k.ch.toUpperCase() : k.ch
+        return (page === "letters" && shiftState > 0 && !emojiSearch) ? k.ch.toUpperCase() : k.ch
     }
 
-    function typeText(t) {
+    function startEmojiSearch() {
+        searchText = ""
+        page = "letters"
+        emojiSearch = true
+    }
+
+    // Leave the search: Done goes on to typing, the emoji key back to the emoji page.
+    function endEmojiSearch(toPage) {
+        emojiSearch = false
+        searchText = ""
+        page = toPage
+    }
+
+    // direct: write t to the app even while searching (a picked emoji).
+    function typeText(t, direct) {
+        if (emojiSearch && !direct) {
+            searchText = (searchText + t.toLowerCase()).slice(0, 40)
+            return
+        }
         lastEditTime = Date.now()
         syncTimer.restart()
         lastCorrection = null
@@ -366,6 +392,11 @@ Rectangle {
     }
 
     function typeSpace() {
+        if (emojiSearch) {
+            if (searchText !== "" && !/ $/.test(searchText))
+                searchText += " "
+            return
+        }
         var now = Date.now()
         if (word === "" && /[^\s.!?]\s$/.test(recent) && now - lastSpaceTime < 700) {
             lastEditTime = now
@@ -394,6 +425,10 @@ Rectangle {
     }
 
     function doBackspace() {
+        if (emojiSearch) {
+            searchText = searchText.slice(0, -1)
+            return
+        }
         lastEditTime = Date.now()
         syncTimer.restart()
         if (swiped && word === swiped.text) {
@@ -453,10 +488,11 @@ Rectangle {
                 visible: !kb.trackpad
                 text: k.type === "char" ? kb.labelFor(k)
                     : k.type === "mode" ? k.label
+                    : (k.type === "return" && kb.emojiSearch) ? "Done"
                     : (k.type === "return" && kb.actionLabel !== "") ? kb.actionLabel
                     : ""
                 color: parent.lit ? kb.accentTextColor : kb.textColor
-                opacity: (k.type === "return" && !kb.actionEnabled) ? 0.4 : 1
+                opacity: (k.type === "return" && !kb.actionEnabled && !kb.emojiSearch) ? 0.4 : 1
                 font.family: kb.fontFamily
                 font.pixelSize: (k.type === "char" ? 30 : 26) * kb.unit
             }
@@ -468,9 +504,10 @@ Rectangle {
                 scaleFactor: kb.unit
                 color: parent.lit ? kb.accentTextColor : kb.textColor
                 cutout: kb.solidColor
-                name: k.type === "shift" ? (kb.shiftState === 2 ? "capsLock" : kb.shiftState === 1 ? "shiftOn" : "shift")
+                // The search is always lower case, so shift shows off there.
+                name: k.type === "shift" ? (kb.emojiSearch ? "shift" : kb.shiftState === 2 ? "capsLock" : kb.shiftState === 1 ? "shiftOn" : "shift")
                     : k.type === "backspace" ? "backspace"
-                    : (k.type === "return" && kb.actionLabel === "") ? "return"
+                    : (k.type === "return" && kb.actionLabel === "" && !kb.emojiSearch) ? "return"
                     : ""
             }
 
@@ -620,6 +657,8 @@ Rectangle {
                     page = "letters"
             } else if (k.type === "space") {
                 typeSpace()
+            } else if (k.type === "return" && emojiSearch) {
+                endEmojiSearch("letters")
             } else if (k.type === "return") {
                 if (word !== "")
                     endWord("")
@@ -631,6 +670,8 @@ Rectangle {
             } else if (k.type === "mode") {
                 page = k.target
             } else if (k.type === "emoji") {
+                if (emojiSearch)
+                    endEmojiSearch("emoji")
                 page = "emoji"
             }
         }
@@ -672,7 +713,7 @@ Rectangle {
 
     function enterTrackpad(id) {
         var t = touches[id]
-        if (!t || t.done)
+        if (!t || t.done || emojiSearch)
             return
         t.mode = "trackpad"
         trackpad = true
@@ -873,6 +914,115 @@ Rectangle {
         onCanceled: kb.endAllTouches()
     }
 
+    // --- emoji search row (in place of the suggestion bar) ---------------------------
+    Item {
+        id: searchRow
+        visible: kb.emojiSearch && kb.page !== "emoji"
+        width: kb.width
+        height: kb.barHeight
+
+        MouseArea { anchors.fill: parent }     // the row's touches never reach the keys
+
+        Rectangle {
+            id: searchField
+            x: 9 * kb.sx
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: 1 * kb.sy
+            width: 200 * kb.sx
+            height: 44 * kb.sy
+            radius: height / 2
+            color: kb.keyColor
+
+            Icon {
+                id: searchIcon
+                x: 12 * kb.unit
+                anchors.verticalCenter: parent.verticalCenter
+                name: "search"
+                scaleFactor: kb.unit
+                color: kb.textColor
+                opacity: 0.6
+            }
+            Text {
+                id: searchLabel
+                anchors.left: searchIcon.right
+                anchors.leftMargin: 6 * kb.unit
+                anchors.right: parent.right
+                anchors.rightMargin: 14 * kb.unit
+                anchors.verticalCenter: parent.verticalCenter
+                // A no-break space at the end, so the cursor moves past a typed space.
+                text: kb.searchText !== "" ? kb.searchText.replace(/ $/, "\u00a0") : "Search Emoji"
+                color: kb.textColor
+                opacity: kb.searchText !== "" ? 1 : 0.55
+                elide: Text.ElideLeft
+                font.family: kb.fontFamily
+                font.pixelSize: 21 * kb.unit
+            }
+            Rectangle {
+                // text cursor
+                x: searchLabel.x + (kb.searchText !== "" ? Math.min(searchLabel.contentWidth, searchLabel.width) : 0) + 1 * kb.unit
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(1, 2 * kb.unit)
+                height: 24 * kb.sy
+                color: kb.accentColor
+                SequentialAnimation on opacity {
+                    running: searchRow.visible
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0; duration: 500; easing.type: Easing.InQuad }
+                    NumberAnimation { to: 1; duration: 500; easing.type: Easing.OutQuad }
+                }
+            }
+        }
+
+        ListView {
+            id: searchList
+            anchors.left: searchField.right
+            anchors.leftMargin: 6 * kb.sx
+            anchors.right: parent.right
+            height: parent.height
+            orientation: ListView.Horizontal
+            clip: true
+            model: kb.searchResults
+            delegate: Item {
+                width: 58 * kb.unit
+                height: searchList.height
+                Image {
+                    id: found
+                    anchors.centerIn: parent
+                    width: 40 * kb.unit
+                    height: width
+                    sourceSize.width: 72
+                    sourceSize.height: 72
+                    asynchronous: true
+                    smooth: true
+                    source: L.emojiFile(modelData)
+                }
+                Text {
+                    visible: found.status === Image.Error
+                    anchors.centerIn: parent
+                    text: modelData
+                    font.pixelSize: 36 * kb.unit
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: kb.typeText(modelData, true)
+                }
+            }
+            onModelChanged: positionViewAtBeginning()
+        }
+
+        Text {
+            anchors.left: searchList.left
+            anchors.leftMargin: 10 * kb.unit
+            anchors.verticalCenter: parent.verticalCenter
+            visible: kb.searchText.replace(/ /g, "") !== "" && kb.searchResults.length === 0
+            text: "No emoji found"
+            color: kb.textColor
+            opacity: 0.55
+            font.family: kb.fontFamily
+            font.pixelSize: 20 * kb.unit
+        }
+    }
+
     // --- popups ---------------------------------------------------------------------
     KeyPopup {
         anchors.fill: parent
@@ -932,6 +1082,39 @@ Rectangle {
         anchors.fill: parent
         visible: kb.page === "emoji"
         readonly property var emojiData: L.emojiList()
+
+        Rectangle {
+            id: searchPill
+            x: 12 * kb.sx
+            y: 14 * kb.sy
+            width: parent.width - 24 * kb.sx
+            height: 44 * kb.sy
+            radius: height / 2
+            color: kb.keyColor
+            Icon {
+                id: pillIcon
+                x: 14 * kb.unit
+                anchors.verticalCenter: parent.verticalCenter
+                name: "search"
+                scaleFactor: kb.unit
+                color: kb.textColor
+                opacity: 0.6
+            }
+            Text {
+                anchors.left: pillIcon.right
+                anchors.leftMargin: 8 * kb.unit
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Search Emoji"
+                color: kb.textColor
+                opacity: 0.55
+                font.family: kb.fontFamily
+                font.pixelSize: 21 * kb.unit
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: kb.startEmojiSearch()
+            }
+        }
 
         GridView {
             id: emojiGrid
