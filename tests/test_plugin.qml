@@ -29,6 +29,22 @@ Item {
         kb.endTouch(id || 1, (k.x + k.w / 2) * kb.sx, (k.y + k.h / 2) * kb.sy, false)
     }
     function tap(k) { press(k); release(k) }
+    // Slide one finger through the word's letters.
+    function swipe(word) {
+        var pts = []
+        for (var i = 0; i < word.length; ++i) {
+            var c = word.charAt(i)
+            var k = keyFor(function (kk) { return kk.type === "char" && kk.ch === c })
+            pts.push({ x: (k.x + k.w / 2) * kb.sx, y: (k.y + k.h / 2) * kb.sy })
+        }
+        kb.startTouch(9, pts[0].x, pts[0].y)
+        for (var j = 1; j < pts.length; ++j)
+            for (var s = 1; s <= 5; ++s)
+                kb.moveTouch(9, pts[j - 1].x + (pts[j].x - pts[j - 1].x) * s / 5,
+                             pts[j - 1].y + (pts[j].y - pts[j - 1].y) * s / 5)
+        var last = pts[pts.length - 1]
+        kb.endTouch(9, last.x, last.y, false)
+    }
     function tapChar(c) { tap(keyFor(function (k) { return k.type === "char" && k.ch === c })) }
     function tapType(ty) { tap(keyFor(function (k) { return k.type === ty })) }
     function text() { return MInputMethodQuick.surroundingText }
@@ -166,6 +182,47 @@ Item {
             check("next-word predictions type at the cursor", /hello \S+ $/.test(text()), JSON.stringify(text()))
             clearText()
             MInputMethodQuick.hiddenText = true
+        },
+        function () {
+            MInputMethodQuick.hiddenText = false
+            clearText()
+            swipe("hello")
+            check("swipe typing is off by default: a slide just moves to the last letter",
+                  text() === "O" && !kb.swiping, JSON.stringify(text()))
+            kb.storeLoader.item.swipe = true     // builds the word index before the next step
+        },
+        function () {
+            clearText()
+            swipe("hello")
+            check("swipe writes the word, with a capital at the start", text() === "Hello", JSON.stringify(text()))
+            check("the swiped word is highlighted in the bar", kb.bar.length > 1 && kb.bar[0].text === "Hello" && kb.bar[0].auto,
+                  JSON.stringify(kb.bar))
+            swipe("world")
+            check("the next swipe adds the space", text() === "Hello world", JSON.stringify(text()))
+            tapType("backspace")
+            check("backspace after a swipe removes the whole word", text() === "Hello ", JSON.stringify(text()))
+            swipe("there")
+            tapType("space")
+            check("no double space and no autocorrect after a swipe", text() === "Hello there ", JSON.stringify(text()))
+            swipe("were")
+            var alt = kb.bar.length > 1 ? kb.bar[1].text : "?"
+            tapBar(1)
+            check("tapping another guess replaces the swiped word", text() === "Hello there " + alt + " ",
+                  JSON.stringify(text()))
+            // A short slide to the next key is still a correction, not a swipe.
+            var q = keyFor(function (k) { return k.ch === "q" }), w = keyFor(function (k) { return k.ch === "w" })
+            press(q, 4)
+            kb.moveTouch(4, (w.x + w.w / 2) * kb.sx, (w.y + w.h / 2) * kb.sy)
+            release(w, 4)
+            check("short slide still moves to the neighbouring letter", /w$/.test(text()) && !kb.swiping,
+                  JSON.stringify(text()))
+            clearText()
+            MInputMethodQuick.hiddenText = true
+        },
+        function () {
+            swipe("hello")
+            check("no swipe in password fields", text() === "o", JSON.stringify(text()))
+            clearText()
         },
         function () {
             tapChar("t"); tapChar("e"); tapChar("h"); tapType("space")
