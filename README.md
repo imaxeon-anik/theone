@@ -34,7 +34,7 @@ the emoji are Google's Noto Emoji.
 Tested on a Sony Xperia 10 V running Sailfish OS 5, plus the desktop preview and a
 fake-Maliit test harness.
 
-![Emoji page with colour emoji](docs/emoji.png)
+![Emoji page with colour emoji, and an emoji search for "heart"](docs/emoji.png)
 
 ## Build
 
