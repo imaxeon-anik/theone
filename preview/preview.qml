@@ -19,6 +19,9 @@ Item {
         { name: "numbers", page: "numbers", shift: 0, popup: -1, accent: -1 },
         { name: "symbols", page: "symbols", shift: 0, popup: -1, accent: -1 },
         { name: "emoji", page: "emoji", shift: 0, popup: -1, accent: -1 },
+        { name: "emoji-search-empty", page: "letters", shift: 0, popup: -1, accent: -1, search: "" },
+        { name: "emoji-search", page: "letters", shift: 0, popup: -1, accent: -1, search: "heart" },
+        { name: "emoji-search-none", page: "letters", shift: 0, popup: -1, accent: -1, search: "xqz" },
         { name: "suggest-teh", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh" },
         { name: "suggest-hel", page: "letters", shift: 0, popup: -1, accent: -1, word: "hel" },
         { name: "predict-start", page: "letters", shift: 1, popup: -1, accent: -1, word: "" },
@@ -33,6 +36,10 @@ Item {
           amb: { mode: "off", light: false, highlight: "#0a84ff", wide: true } },
         { name: "wide-silica", page: "letters", shift: 0, popup: -1, accent: -1, word: "Teh", wall: 0,
           amb: { mode: "silica", light: false, highlight: "#c680ff", dimmer: "#1c0b2e", wide: true } },
+        { name: "silica-purple-emoji", page: "emoji", shift: 0, popup: -1, accent: -1, wall: 0,
+          amb: { mode: "silica", light: false, highlight: "#c680ff", dimmer: "#1c0b2e" } },
+        { name: "silica-purple-search", page: "letters", shift: 0, popup: -1, accent: -1, wall: 0, search: "cat",
+          amb: { mode: "silica", light: false, highlight: "#c680ff", dimmer: "#1c0b2e" } },
         { name: "silica-light-accents", page: "letters", shift: 0, popup: -1, accent: 2, word: "hel", wall: 2,
           amb: { mode: "silica", light: true, highlight: "#1f6fd6", dimmer: "#e6eefa", primary: "#000000" } }
     ]
@@ -79,6 +86,12 @@ Item {
         kb.actionHighlighted = !!s.go
         kb.word = s.word || ""
         kb.updateBar()
+        if (s.search !== undefined) {
+            kb.startEmojiSearch()
+            kb.searchText = s.search
+        } else {
+            kb.emojiSearch = false
+        }
     }
 
     Timer {

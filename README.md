@@ -25,6 +25,7 @@ the emoji are Google's Noto Emoji.
   `/apps/theone-keyboard/learned`)
 - No suggestions or autocorrect in password, URL, e-mail and number fields
 - Number (`123`), symbol (`#+=`) and emoji pages
+- Emoji search: tap **Search Emoji** on the emoji page and type a word ("pizza", "heart")
 - Optional Sailfish style that follows your ambience, and a Wide key size (see below)
 - Settings page: **Settings → System → theOne keyboard**
 - Optional swipe typing: slide across the letters to write a word (off by default)
@@ -97,14 +98,17 @@ terminal with a hardware keyboard. Uninstalling the RPM also restores the stock 
 - `python3 scripts/compare.py` compares the letter page with a reference screenshot of your
   own at `preview/local/reference.png` (kept out of the repo).
 - `python3 scripts/build_words.py` regenerates `Words.js` from `data/en_50k.txt`.
+- `python3 scripts/build_emoji_names.py` regenerates `EmojiNames.js` from Unicode CLDR.
 - `tests/test_predict.qml` checks suggestions and autocorrect against common typos.
 - `tests/test_swipe.qml` checks the swipe decoder with drawn, wobbly paths.
+- `tests/test_emoji.qml` checks emoji search results.
 - `tests/test_plugin.qml` drives `plugin/theone.qml` against a fake Maliit server:
 
 ```bash
 ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmlscene -I fake -I ../qml test_plugin.qml'
 ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmlscene test_predict.qml'
 ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmlscene test_swipe.qml'
+ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qmlscene test_emoji.qml'
 ```
 
 ## Layout
@@ -116,6 +120,7 @@ ssh sfbuild 'cd ~/src/theone/tests && QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND
 | `qml/org/theone/keyboard/Predict.js` | Suggestions, autocorrect and learning |
 | `qml/org/theone/keyboard/Swipe.js` | Swipe typing: matches the drawn path to words |
 | `qml/org/theone/keyboard/Words.js` | Generated English word list (do not edit) |
+| `qml/org/theone/keyboard/EmojiNames.js` | Generated emoji names and keywords for search (do not edit) |
 | `scripts/theone-keyboard` | On/off switch (edits `~/.config/maliit.org/server.conf`) |
 | `rpm/theone-keyboard.spec` | Package spec |
 
@@ -133,3 +138,7 @@ Emoji pictures: [Noto Emoji](https://github.com/googlefonts/noto-emoji) 3D set b
 downloaded with `scripts/fetch_emoji.py` into `qml/org/theone/keyboard/emoji/` (licence in
 `emoji/LICENSE`). Qt 5.6 on Sailfish can't draw colour emoji fonts, so the emoji page shows
 these pictures; the emoji you type are still normal text, drawn by the app.
+
+Emoji search words: English emoji names and keywords from
+[Unicode CLDR](https://github.com/unicode-org/cldr) (release 49), Unicode License v3.
+`scripts/build_emoji_names.py` writes them to `EmojiNames.js`, with the licence at the top.

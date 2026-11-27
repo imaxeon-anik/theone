@@ -5,14 +5,14 @@ import QtQuick 2.6
 Canvas {
     id: icon
 
-    property string name: ""          // shift | shiftOn | capsLock | backspace | return | emoji
+    property string name: ""          // shift | shiftOn | capsLock | backspace | return | emoji | search
     property color color: "#ffffff"
     property color cutout: "#1f1f1f"  // face details of the emoji icon
     property real scaleFactor: 1
 
     readonly property var boxes: ({
         "shift": [28, 25], "shiftOn": [28, 25], "capsLock": [28, 27],
-        "backspace": [29, 25], "return": [28, 25], "emoji": [39, 39]
+        "backspace": [29, 25], "return": [28, 25], "emoji": [39, 39], "search": [18, 18]
     })
     readonly property var box: boxes[name] || [24, 24]
 
@@ -94,6 +94,17 @@ Canvas {
             ctx.moveTo(9.2, 9.0)
             ctx.lineTo(2.0, 16.2)
             ctx.lineTo(9.2, 23.4)
+            ctx.stroke()
+        } else if (name === "search") {
+            // magnifying glass
+            ctx.lineWidth = 2.2
+            ctx.beginPath()
+            ctx.arc(7.4, 7.4, 6.2, 0, Math.PI * 2, false)
+            ctx.stroke()
+            ctx.lineWidth = 2.6
+            ctx.beginPath()
+            ctx.moveTo(12.0, 12.0)
+            ctx.lineTo(16.8, 16.8)
             ctx.stroke()
         } else if (name === "emoji") {
             ctx.beginPath()

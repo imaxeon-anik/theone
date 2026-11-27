@@ -1,4 +1,5 @@
 .pragma library
+.import "EmojiNames.js" as N
 
 // All geometry is in "reference units": the keyboard is designed on a 618 x 495 canvas
 // (the reference screenshot) and scaled to the real screen by Keyboard.qml.
@@ -162,4 +163,93 @@ function emojiList() {
         all = all.concat(EMOJI[c].list.split(" "))
     }
     return { all: all, starts: starts }
+}
+
+// Emoji search. Every word of the query must start a word of the emoji's name or of
+// one of its keywords; name matches rank above keyword matches, and emoji keep their
+// page order otherwise. Returns up to max emoji.
+var searchIndex = null
+
+// Lower case, accents off (from ACCENTS: "piña" -> "pina"), apostrophes dropped ("i’m" -> "im").
+var plainOf = null
+function foldSearch(s) {
+    if (!plainOf) {
+        plainOf = {}
+        for (var base in ACCENTS)
+            for (var i = 0; i < ACCENTS[base].length; ++i)
+                plainOf[ACCENTS[base].charAt(i)] = base
+        plainOf["ō"] = "o"
+    }
+    var out = ""
+    s = s.toLowerCase()
+    for (var j = 0; j < s.length; ++j) {
+        var c = s.charAt(j)
+        if (c === "'" || c === "\u2019")
+            continue
+        out += plainOf[c] || c
+    }
+    return out
+}
+
+function wordsOf(s) {
+    return foldSearch(s).split(/[\s\-:,.!?\u201C\u201D"()]+/).filter(function (w) { return w !== "" })
+}
+
+function emojiSearchIndex() {
+    if (searchIndex)
+        return searchIndex
+    searchIndex = []
+    var all = emojiList().all
+    for (var i = 0; i < all.length; ++i) {
+        var names = N.NAMES[all[i]]
+        if (!names)
+            continue
+        var parts = names.split("|")
+        var kw = []
+        for (var j = 1; j < parts.length; ++j)
+            kw = kw.concat(wordsOf(parts[j]))
+        searchIndex.push({ e: all[i], name: foldSearch(parts[0]), nameWords: wordsOf(parts[0]), words: kw })
+    }
+    return searchIndex
+}
+
+// 2 if a word of list is t, 1 if one starts with t, else 0.
+function startsAny(list, t) {
+    var best = 0
+    for (var i = 0; i < list.length; ++i)
+        if (list[i].indexOf(t) === 0) {
+            if (list[i] === t)
+                return 2
+            best = 1
+        }
+    return best
+}
+
+function searchEmoji(query, max) {
+    var q = foldSearch(query).replace(/^\s+|\s+$/g, "")
+    var tokens = wordsOf(q)
+    if (tokens.length === 0)
+        return []
+    var idx = emojiSearchIndex(), found = []
+    for (var i = 0; i < idx.length; ++i) {
+        var it = idx[i], score = 0
+        for (var t = 0; t < tokens.length; ++t) {
+            var inName = startsAny(it.nameWords, tokens[t])
+            var s = inName ? 2 + inName : startsAny(it.words, tokens[t])
+            if (s === 0) {
+                score = -1
+                break
+            }
+            score += s
+        }
+        if (score < 0)
+            continue
+        if (it.name === q)
+            score += 20
+        // Shorter names are the plainer emoji: "red heart" before "smiling face with heart-eyes".
+        score -= 0.1 * it.nameWords.length
+        found.push({ e: it.e, score: score, order: i })
+    }
+    found.sort(function (a, b) { return b.score - a.score || a.order - b.order })
+    return found.slice(0, max || 60).map(function (f) { return f.e })
 }

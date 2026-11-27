@@ -24,7 +24,8 @@ The menu names below may differ a little on the site.
 - **Title:** theOne keyboard
 - **Category:** Utilities (or System, if it is offered)
 - **Tags:** keyboard, maliit, input method, swipe, emoji
-- **Licence:** MIT (bundled: Inter font OFL 1.1, word list CC BY-SA 4.0, Noto Emoji Apache 2.0)
+- **Licence:** MIT (bundled: Inter font OFL 1.1, word list CC BY-SA 4.0, Noto Emoji Apache 2.0,
+  CLDR emoji names Unicode License v3)
 - **Source / homepage:** https://github.com/imaxeon-anik/theone
 
 **Description:**
@@ -37,7 +38,7 @@ The menu names below may differ a little on the site.
 > - Long-press a letter for accents; drag the space bar to move the cursor
 > - English suggestions and autocorrect that learn your words; backspace undoes a correction
 > - Optional swipe typing: slide across the letters to write a word
-> - Number, symbol and colour emoji pages
+> - Number, symbol and colour emoji pages, with emoji search
 > - Two styles: theOne Classic, or a see-through Sailfish style that follows your ambience
 > - Standard or Wide key size
 >
